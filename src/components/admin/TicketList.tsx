@@ -90,7 +90,7 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
       ) : (
         <div className="space-y-3">
           {filteredFeedback.map((ticket, i) => {
-            const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type];
+            const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
             return (
               <button
                 key={ticket.id}
@@ -100,7 +100,7 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
               >
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: typeConfig.bgColor, color: typeConfig.color }}>
-                    {typeIcons[ticket.type]}
+                    {typeIcons[ticket.type] || <AlertTriangle className="w-5 h-5" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate mb-1">{ticket.message.slice(0, 60)}...</p>
