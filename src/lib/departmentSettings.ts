@@ -24,6 +24,7 @@ export const getDepartmentSettings = async (department: Department): Promise<Dep
       googlePrivateKey: data.google_private_key,
       telegramBotToken: data.telegram_bot_token,
       telegramChatId: data.telegram_chat_id,
+      bitrixWebhookUrl: (data as any).bitrix_webhook_url,
     };
   } catch (e) {
     console.error('Error in getDepartmentSettings:', e);
@@ -51,6 +52,7 @@ export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> 
       googlePrivateKey: row.google_private_key,
       telegramBotToken: row.telegram_bot_token,
       telegramChatId: row.telegram_chat_id,
+      bitrixWebhookUrl: (row as any).bitrix_webhook_url,
     }));
   } catch (e) {
     console.error('Error in getAllDepartmentSettings:', e);
@@ -68,7 +70,8 @@ export const saveDepartmentSettings = async (settings: DepartmentSettings): Prom
         google_private_key: settings.googlePrivateKey,
         telegram_bot_token: settings.telegramBotToken,
         telegram_chat_id: settings.telegramChatId,
-      })
+        bitrix_webhook_url: settings.bitrixWebhookUrl,
+      } as any)
       .eq('department', settings.department);
 
     if (error) {

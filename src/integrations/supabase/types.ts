@@ -40,6 +40,7 @@ export type Database = {
       }
       department_settings: {
         Row: {
+          bitrix_webhook_url: string | null
           created_at: string
           department: string
           google_private_key: string | null
@@ -51,6 +52,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bitrix_webhook_url?: string | null
           created_at?: string
           department: string
           google_private_key?: string | null
@@ -62,6 +64,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bitrix_webhook_url?: string | null
           created_at?: string
           department?: string
           google_private_key?: string | null
