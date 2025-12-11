@@ -9,6 +9,7 @@ interface UpdateRequest {
   spreadsheetId: string;
   feedbackId: string;
   newStatus: string;
+  newSubStatus?: string;
   serviceAccountEmail: string;
   privateKey: string;
 }
@@ -87,14 +88,14 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetId, feedbackId, newStatus, serviceAccountEmail, privateKey }: UpdateRequest = await req.json();
+    const { spreadsheetId, feedbackId, newStatus, newSubStatus, serviceAccountEmail, privateKey }: UpdateRequest = await req.json();
 
-    console.log('Update status request:', { spreadsheetId, feedbackId, newStatus });
+    console.log('Update status request:', { spreadsheetId, feedbackId, newStatus, newSubStatus });
 
     const accessToken = await getAccessToken(serviceAccountEmail, privateKey);
 
     // Get all data from column A (IDs) to find the row
-    const getUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:J?majorDimension=ROWS`;
+    const getUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:K?majorDimension=ROWS`;
     
     const getResponse = await fetch(getUrl, {
       method: 'GET',
@@ -125,8 +126,8 @@ serve(async (req) => {
       );
     }
 
-    // Update the status cell (column J)
-    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/J${rowIndex}?valueInputOption=RAW`;
+    // Update the status cell (column J) and sub-status (column K)
+    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/J${rowIndex}:K${rowIndex}?valueInputOption=RAW`;
     
     const updateResponse = await fetch(updateUrl, {
       method: 'PUT',
@@ -134,7 +135,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ values: [[newStatus]] }),
+      body: JSON.stringify({ values: [[newStatus, newSubStatus || '']] }),
     });
 
     if (!updateResponse.ok) {
