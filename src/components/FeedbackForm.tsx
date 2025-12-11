@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addFeedbackToDb } from '@/lib/database';
-import { sendToTelegram, syncToGoogleSheets } from '@/lib/integrations';
+import { sendToTelegram, syncToGoogleSheets, sendToBitrix } from '@/lib/integrations';
 import { Paperclip, Zap, Clock, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -80,6 +80,7 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
       await Promise.all([
         sendToTelegram(feedback),
         syncToGoogleSheets(feedback),
+        sendToBitrix(feedback),
       ]);
       
       toast.success('Ваше обращение успешно отправлено!');
