@@ -10,7 +10,8 @@ import {
   FileSpreadsheet, 
   MessageCircle,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Webhook
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -72,7 +73,7 @@ export const DepartmentSettingsPanel = () => {
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
           {departments.map(dept => {
             const deptSettings = settings.find(s => s.department === dept);
-            const hasConfig = deptSettings?.googleSheetsId || deptSettings?.telegramBotToken;
+            const hasConfig = deptSettings?.googleSheetsId || deptSettings?.telegramBotToken || deptSettings?.bitrixWebhookUrl;
             return (
               <TabsTrigger 
                 key={dept} 
@@ -162,6 +163,32 @@ export const DepartmentSettingsPanel = () => {
                       onChange={(e) => updateSettings(dept, { telegramChatId: e.target.value })}
                       placeholder="-1001234567890"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bitrix24 */}
+              <div className="card-elevated p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                    <Webhook className="w-5 h-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Bitrix24 — {getDepartmentName(dept)}</h3>
+                    <p className="text-sm text-muted-foreground">Вебхук для создания лидов/задач</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Webhook URL</Label>
+                    <Input
+                      value={deptSettings.bitrixWebhookUrl || ''}
+                      onChange={(e) => updateSettings(dept, { bitrixWebhookUrl: e.target.value })}
+                      placeholder="https://your-domain.bitrix24.ru/rest/1/abc123..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Входящий вебхук из Битрикс24 (Приложения → Вебхуки → Добавить вебхук)
+                    </p>
                   </div>
                 </div>
               </div>

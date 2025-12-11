@@ -58,4 +58,5 @@ export interface DepartmentSettings {
   googlePrivateKey: string | null;
   telegramBotToken: string | null;
   telegramChatId: string | null;
+  bitrixWebhookUrl: string | null;
 }
