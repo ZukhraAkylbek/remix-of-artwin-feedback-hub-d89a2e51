@@ -80,7 +80,8 @@ export const getStatusName = (status: string): string => {
 export const updateStatusInGoogleSheets = async (
   feedbackId: string, 
   newStatus: string,
-  department: Department
+  department: Department,
+  subStatus?: string | null
 ): Promise<boolean> => {
   const deptSettings = await getDepartmentSettings(department);
   
@@ -97,6 +98,7 @@ export const updateStatusInGoogleSheets = async (
         spreadsheetId,
         feedbackId,
         newStatus: getStatusName(newStatus),
+        newSubStatus: subStatus || '',
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
         privateKey: deptSettings.googlePrivateKey
       }
@@ -181,7 +183,7 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
     const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
       body: {
         spreadsheetId,
-        range: 'A:J',
+        range: 'A:K',
         values: [[
           feedback.id,
           feedback.createdAt,
@@ -192,7 +194,8 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
           feedback.message,
           getUrgencyName(feedback.urgency),
           getDepartmentName(feedback.department),
-          getStatusName(feedback.status)
+          getStatusName(feedback.status),
+          feedback.subStatus || ''
         ]],
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
         privateKey: deptSettings.googlePrivateKey

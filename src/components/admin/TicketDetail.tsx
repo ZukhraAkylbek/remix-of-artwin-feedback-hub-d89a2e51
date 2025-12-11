@@ -120,8 +120,8 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       onUpdate();
       toast.success('Статус обновлён');
       
-      // Sync to Google Sheets
-      const sheetUpdated = await updateStatusInGoogleSheets(ticket.id, status, ticket.department as Department);
+      // Sync to Google Sheets with sub-status
+      const sheetUpdated = await updateStatusInGoogleSheets(ticket.id, status, ticket.department as Department, newSubStatus);
       if (sheetUpdated) {
         console.log('Status synced to Google Sheets');
       }
@@ -140,6 +140,12 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       setCurrentSubStatus(selectedSubStatus.name);
       onUpdate();
       toast.success('Статус решения обновлён');
+      
+      // Sync to Google Sheets with sub-status
+      const sheetUpdated = await updateStatusInGoogleSheets(ticket.id, 'in_progress', ticket.department as Department, selectedSubStatus.name);
+      if (sheetUpdated) {
+        console.log('Sub-status synced to Google Sheets');
+      }
     } else {
       toast.error('Ошибка обновления статуса решения');
     }

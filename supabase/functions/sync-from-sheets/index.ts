@@ -101,8 +101,8 @@ serve(async (req) => {
 
     const accessToken = await getAccessToken(serviceAccountEmail, privateKey);
 
-    // Get all data from the sheet (columns A and J - ID and Status)
-    const getUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:J?majorDimension=ROWS`;
+    // Get all data from the sheet (columns A to K - ID, Status, SubStatus)
+    const getUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:K?majorDimension=ROWS`;
     
     const getResponse = await fetch(getUrl, {
       method: 'GET',
@@ -122,11 +122,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     let updatedCount = 0;
-    const updates: { id: string; oldStatus: string; newStatus: string }[] = [];
+    const updates: { id: string; oldStatus: string; newStatus: string; subStatus?: string }[] = [];
 
     for (const row of rows) {
       const id = row[0];
       const sheetStatus = row[9]; // Column J (0-indexed = 9)
+      const sheetSubStatus = row[10] || null; // Column K (0-indexed = 10)
       
       if (!id || !sheetStatus) continue;
 
@@ -136,21 +137,33 @@ serve(async (req) => {
       // Get current status from database
       const { data: current } = await supabase
         .from('feedback')
-        .select('status')
+        .select('status, sub_status')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
-      if (current && current.status !== normalizedStatus) {
+      if (!current) continue;
+
+      const statusChanged = current.status !== normalizedStatus;
+      const subStatusChanged = current.sub_status !== sheetSubStatus;
+
+      if (statusChanged || subStatusChanged) {
         // Update status in database
+        const updateData: any = { status: normalizedStatus };
+        if (normalizedStatus === 'in_progress' && sheetSubStatus) {
+          updateData.sub_status = sheetSubStatus;
+        } else if (normalizedStatus !== 'in_progress') {
+          updateData.sub_status = null;
+        }
+
         const { error } = await supabase
           .from('feedback')
-          .update({ status: normalizedStatus })
+          .update(updateData)
           .eq('id', id);
 
         if (!error) {
           updatedCount++;
-          updates.push({ id, oldStatus: current.status, newStatus: normalizedStatus });
-          console.log(`Updated ${id}: ${current.status} -> ${normalizedStatus}`);
+          updates.push({ id, oldStatus: current.status, newStatus: normalizedStatus, subStatus: sheetSubStatus });
+          console.log(`Updated ${id}: ${current.status} -> ${normalizedStatus}, subStatus: ${sheetSubStatus}`);
         }
       }
     }
