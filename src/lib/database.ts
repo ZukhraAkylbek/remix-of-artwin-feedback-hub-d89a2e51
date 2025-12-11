@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Feedback, FeedbackStatus, SubStatus } from '@/types/feedback';
+import { Feedback, FeedbackStatus } from '@/types/feedback';
 
 // Convert database row to Feedback type
 const rowToFeedback = (row: any): Feedback => ({
@@ -66,7 +66,7 @@ export const addFeedbackToDb = async (feedback: Feedback): Promise<boolean> => {
 export const updateFeedbackStatus = async (
   id: string, 
   status: FeedbackStatus,
-  subStatus?: SubStatus
+  subStatus?: string | null
 ): Promise<boolean> => {
   const updateData: any = { status };
   
@@ -147,4 +147,67 @@ export const getFeedbackCount = async (): Promise<number> => {
   }
 
   return count || 0;
+};
+
+// Sub-status management
+export interface SubStatusItem {
+  id: string;
+  name: string;
+  department: string;
+  isActive: boolean;
+}
+
+export const fetchSubStatuses = async (department: string): Promise<SubStatusItem[]> => {
+  const { data, error } = await supabase
+    .from('sub_statuses')
+    .select('*')
+    .eq('department', department)
+    .eq('is_active', true)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching sub-statuses:', error);
+    return [];
+  }
+
+  return (data || []).map(row => ({
+    id: row.id,
+    name: row.name,
+    department: row.department,
+    isActive: row.is_active
+  }));
+};
+
+export const addSubStatus = async (name: string, department: string): Promise<SubStatusItem | null> => {
+  const { data, error } = await supabase
+    .from('sub_statuses')
+    .insert([{ name, department }])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding sub-status:', error);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    name: data.name,
+    department: data.department,
+    isActive: data.is_active
+  };
+};
+
+export const deleteSubStatus = async (id: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('sub_statuses')
+    .update({ is_active: false })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting sub-status:', error);
+    return false;
+  }
+
+  return true;
 };

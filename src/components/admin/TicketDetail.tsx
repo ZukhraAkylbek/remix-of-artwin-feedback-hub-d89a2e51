@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Feedback, FeedbackStatus, Comment, Department, SubStatus } from '@/types/feedback';
+import { useState, useEffect } from 'react';
+import { Feedback, FeedbackStatus, Comment, Department } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { 
   ArrowLeft, 
   AlertCircle, 
@@ -19,12 +20,12 @@ import {
   Paperclip,
   MessageSquare,
   Trash2,
-  ChevronDown
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById } from '@/lib/database';
-import { updateStatusInGoogleSheets, getSubStatusName } from '@/lib/integrations';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem } from '@/lib/database';
+import { updateStatusInGoogleSheets } from '@/lib/integrations';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -44,6 +45,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface TicketDetailProps {
   ticket: Feedback;
@@ -57,17 +67,6 @@ const statusOptions: { id: FeedbackStatus; label: string; icon: React.ReactNode 
   { id: 'resolved', label: 'Решена', icon: <CheckCircle className="w-4 h-4" /> },
 ];
 
-const subStatusOptions: { id: SubStatus; label: string }[] = [
-  { id: 'working_group', label: 'Рабочая группа' },
-  { id: 'management_meeting', label: 'Собрание руководства' },
-  { id: 'foremen_tech_meeting', label: 'Собрание прорабов с тех отделом (пн 8:00)' },
-  { id: 'managers_meeting', label: 'Собрание руководителей (пн 10:00)' },
-  { id: 'top_management_meeting', label: 'Собрание топ менеджмента (пн 14:00)' },
-  { id: 'site_inspection', label: 'Обходы по объектам' },
-  { id: 'project_committee', label: 'Собрание проектного комитета (1/в 2 недели)' },
-  { id: 'production_meeting', label: 'Производственные собрания' },
-];
-
 export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -76,7 +75,20 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [newComment, setNewComment] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState(ticket.aiAnalysis);
   const [currentStatus, setCurrentStatus] = useState(ticket.status);
-  const [currentSubStatus, setCurrentSubStatus] = useState<SubStatus>(ticket.subStatus || null);
+  const [currentSubStatus, setCurrentSubStatus] = useState<string | null>(ticket.subStatus || null);
+  const [subStatuses, setSubStatuses] = useState<SubStatusItem[]>([]);
+  const [newSubStatusName, setNewSubStatusName] = useState('');
+  const [isAddingSubStatus, setIsAddingSubStatus] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+
+  useEffect(() => {
+    loadSubStatuses();
+  }, [ticket.department]);
+
+  const loadSubStatuses = async () => {
+    const statuses = await fetchSubStatuses(ticket.department);
+    setSubStatuses(statuses);
+  };
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -118,16 +130,35 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
     }
   };
 
-  const handleSubStatusChange = async (subStatus: SubStatus) => {
-    const success = await updateFeedbackStatus(ticket.id, 'in_progress', subStatus);
+  const handleSubStatusChange = async (subStatusId: string) => {
+    const selectedSubStatus = subStatuses.find(s => s.id === subStatusId);
+    if (!selectedSubStatus) return;
+
+    const success = await updateFeedbackStatus(ticket.id, 'in_progress', selectedSubStatus.name);
     if (success) {
       setCurrentStatus('in_progress');
-      setCurrentSubStatus(subStatus);
+      setCurrentSubStatus(selectedSubStatus.name);
       onUpdate();
-      toast.success('Подстатус обновлён');
+      toast.success('Статус решения обновлён');
     } else {
-      toast.error('Ошибка обновления подстатуса');
+      toast.error('Ошибка обновления статуса решения');
     }
+  };
+
+  const handleAddSubStatus = async () => {
+    if (!newSubStatusName.trim()) return;
+    
+    setIsAddingSubStatus(true);
+    const newStatus = await addSubStatus(newSubStatusName.trim(), ticket.department);
+    if (newStatus) {
+      setSubStatuses([...subStatuses, newStatus]);
+      setNewSubStatusName('');
+      setShowAddDialog(false);
+      toast.success('Статус решения добавлен');
+    } else {
+      toast.error('Ошибка добавления статуса');
+    }
+    setIsAddingSubStatus(false);
   };
 
   const handleDelete = async () => {
@@ -153,10 +184,11 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       text: newComment,
     };
     
-    // Note: Comments are local only for now
     setNewComment('');
     toast.success('Комментарий добавлен');
   };
+
+  const currentSubStatusDisplay = currentSubStatus || '';
 
   return (
     <div className="space-y-6">
@@ -208,7 +240,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                 }
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <Badge variant={ticket.type === 'complaint' ? 'destructive' : 'default'}>
                     {ticket.type === 'complaint' ? 'Жалоба' : 'Предложение'}
                   </Badge>
@@ -221,6 +253,11 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                   {ticket.bitrixTaskId && (
                     <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
                       Bitrix #{ticket.bitrixTaskId}
+                    </Badge>
+                  )}
+                  {currentSubStatusDisplay && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                      {currentSubStatusDisplay}
                     </Badge>
                   )}
                 </div>
@@ -355,25 +392,59 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
 
             {currentStatus === 'in_progress' && (
               <div className="mt-4 pt-4 border-t border-border">
-                <h4 className="text-sm font-medium mb-3">Статус решения</h4>
-                <Select 
-                  value={currentSubStatus || ''} 
-                  onValueChange={(value) => handleSubStatusChange(value as SubStatus)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Выберите статус решения" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subStatusOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id!}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {currentSubStatus && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {getSubStatusName(currentSubStatus)}
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium">Статус решения</h4>
+                  <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-background">
+                      <DialogHeader>
+                        <DialogTitle>Добавить статус решения</DialogTitle>
+                        <DialogDescription>
+                          Введите название нового статуса решения для этого департамента
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Input
+                        value={newSubStatusName}
+                        onChange={(e) => setNewSubStatusName(e.target.value)}
+                        placeholder="Название статуса..."
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddSubStatus()}
+                      />
+                      <DialogFooter>
+                        <Button 
+                          onClick={handleAddSubStatus} 
+                          disabled={isAddingSubStatus || !newSubStatusName.trim()}
+                        >
+                          {isAddingSubStatus && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                          Добавить
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                {subStatuses.length > 0 ? (
+                  <Select 
+                    value={subStatuses.find(s => s.name === currentSubStatus)?.id || ''} 
+                    onValueChange={handleSubStatusChange}
+                  >
+                    <SelectTrigger className="w-full bg-background">
+                      <SelectValue placeholder="Выберите статус решения" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border border-border z-50">
+                      {subStatuses.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Нет статусов решения. Нажмите + чтобы добавить.
                   </p>
                 )}
               </div>
