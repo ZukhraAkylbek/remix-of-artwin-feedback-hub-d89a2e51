@@ -1,28 +1,32 @@
 import { UserRole } from '@/types/feedback';
-import { Users, Briefcase, HardHat } from 'lucide-react';
+import { User, Briefcase, Truck, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 
 interface RoleSelectorProps {
   selected: UserRole | null;
   onSelect: (role: UserRole) => void;
 }
 
-const roles: { id: UserRole; label: string; icon: React.ReactNode; description: string }[] = [
-  { id: 'employee', label: 'Сотрудник', icon: <Users className="w-6 h-6" />, description: 'Работник компании Artwin' },
-  { id: 'client', label: 'Клиент', icon: <Briefcase className="w-6 h-6" />, description: 'Заказчик услуг' },
-  { id: 'contractor', label: 'Подрядчик', icon: <HardHat className="w-6 h-6" />, description: 'Партнер или поставщик' },
-];
-
 export const RoleSelector = ({ selected, onSelect }: RoleSelectorProps) => {
+  const { t } = useI18n();
+
+  const roles: { id: UserRole; labelKey: 'employee' | 'client' | 'contractor' | 'resident'; descKey: 'employeeDesc' | 'clientDesc' | 'contractorDesc' | 'residentDesc'; icon: React.ReactNode }[] = [
+    { id: 'employee', labelKey: 'employee', descKey: 'employeeDesc', icon: <User className="w-6 h-6" /> },
+    { id: 'client', labelKey: 'client', descKey: 'clientDesc', icon: <Briefcase className="w-6 h-6" /> },
+    { id: 'contractor', labelKey: 'contractor', descKey: 'contractorDesc', icon: <Truck className="w-6 h-6" /> },
+    { id: 'resident', labelKey: 'resident', descKey: 'residentDesc', icon: <Home className="w-6 h-6" /> },
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {roles.map((role) => (
         <button
           key={role.id}
           onClick={() => onSelect(role.id)}
           className={cn(
             'card-elevated p-6 text-left transition-all duration-300',
-            'hover:border-primary/30 hover:shadow-floating',
+            'hover:border-primary/30',
             selected === role.id && 'border-primary ring-2 ring-primary/20 bg-primary/5'
           )}
         >
@@ -32,8 +36,8 @@ export const RoleSelector = ({ selected, onSelect }: RoleSelectorProps) => {
           )}>
             {role.icon}
           </div>
-          <h3 className="font-semibold text-lg mb-1">{role.label}</h3>
-          <p className="text-sm text-muted-foreground">{role.description}</p>
+          <h3 className="font-semibold text-lg mb-1">{t(role.labelKey)}</h3>
+          <p className="text-sm text-muted-foreground">{t(role.descKey)}</p>
         </button>
       ))}
     </div>

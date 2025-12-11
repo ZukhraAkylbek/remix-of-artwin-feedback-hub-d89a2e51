@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 
 export type Language = 'ru' | 'ky' | 'zh' | 'en';
 
@@ -10,14 +9,9 @@ export const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
 ];
 
-type TranslationKey = keyof typeof translations.ru;
-
 const translations = {
   ru: {
-    // Header
     feedback: 'Обратная связь',
-    
-    // Role selector
     selectRole: 'Выберите вашу роль, чтобы начать',
     employee: 'Сотрудник',
     employeeDesc: 'Работник компании',
@@ -27,8 +21,6 @@ const translations = {
     contractorDesc: 'Партнёр или поставщик',
     resident: 'Владелец квартиры',
     residentDesc: 'Жилец жилого комплекса',
-    
-    // Type selector
     feedbackType: 'Тип обращения',
     whatToReport: 'Что вы хотите сообщить?',
     remark: 'Замечание',
@@ -39,8 +31,6 @@ const translations = {
     safetyDesc: 'Вопрос, связанный с безопасностью',
     gratitude: 'Благодарность',
     gratitudeDesc: 'Выразить благодарность',
-    
-    // Form
     anonymous: 'Анонимное обращение',
     yourName: 'Ваше имя',
     contactInfo: 'Контакт для связи',
@@ -54,8 +44,6 @@ const translations = {
     attachFile: 'Прикрепить файл',
     submit: 'Отправить',
     submitting: 'Отправка...',
-    
-    // Departments
     management: 'Руководство',
     sales: 'Продажи',
     it: 'IT',
@@ -65,16 +53,10 @@ const translations = {
     hr: 'HR',
     marketing: 'Маркетинг',
     design: 'Дизайн',
-    
-    // Success
     successTitle: 'Обращение отправлено!',
     successDesc: 'Спасибо за ваше обращение. Мы рассмотрим его в ближайшее время.',
     newFeedback: 'Новое обращение',
-    
-    // Navigation
     back: 'Назад',
-    
-    // Errors
     errorMessage: 'Пожалуйста, введите сообщение',
     errorSubmit: 'Ошибка при отправке. Попробуйте снова.',
     successSubmit: 'Ваше обращение успешно отправлено!',
@@ -90,7 +72,6 @@ const translations = {
     contractorDesc: 'Өнөктөш же жеткирүүчү',
     resident: 'Батир ээси',
     residentDesc: 'Турак жай комплексинин тургуну',
-    
     feedbackType: 'Кайрылуу түрү',
     whatToReport: 'Эмне жөнүндө кабарлагыңыз келет?',
     remark: 'Эскертүү',
@@ -101,7 +82,6 @@ const translations = {
     safetyDesc: 'Коопсуздук маселеси',
     gratitude: 'Ыраазычылык',
     gratitudeDesc: 'Ыраазычылык билдирүү',
-    
     anonymous: 'Аноним кайрылуу',
     yourName: 'Сиздин атыңыз',
     contactInfo: 'Байланыш',
@@ -115,7 +95,6 @@ const translations = {
     attachFile: 'Файл тиркөө',
     submit: 'Жөнөтүү',
     submitting: 'Жөнөтүлүүдө...',
-    
     management: 'Жетекчилик',
     sales: 'Сатуу',
     it: 'IT',
@@ -125,13 +104,10 @@ const translations = {
     hr: 'HR',
     marketing: 'Маркетинг',
     design: 'Дизайн',
-    
     successTitle: 'Кайрылуу жөнөтүлдү!',
     successDesc: 'Кайрылууңуз үчүн рахмат. Биз аны жакын арада карайбыз.',
     newFeedback: 'Жаңы кайрылуу',
-    
     back: 'Артка',
-    
     errorMessage: 'Сураныч, билдирүү киргизиңиз',
     errorSubmit: 'Жөнөтүүдө ката. Кайра аракет кылыңыз.',
     successSubmit: 'Кайрылууңуз ийгиликтүү жөнөтүлдү!',
@@ -147,7 +123,6 @@ const translations = {
     contractorDesc: '合作伙伴或供应商',
     resident: '业主',
     residentDesc: '住宅小区住户',
-    
     feedbackType: '反馈类型',
     whatToReport: '您想报告什么？',
     remark: '意见',
@@ -158,7 +133,6 @@ const translations = {
     safetyDesc: '安全相关问题',
     gratitude: '感谢',
     gratitudeDesc: '表达感谢',
-    
     anonymous: '匿名反馈',
     yourName: '您的姓名',
     contactInfo: '联系方式',
@@ -172,7 +146,6 @@ const translations = {
     attachFile: '附加文件',
     submit: '提交',
     submitting: '提交中...',
-    
     management: '管理层',
     sales: '销售',
     it: 'IT',
@@ -182,13 +155,10 @@ const translations = {
     hr: '人力资源',
     marketing: '市场营销',
     design: '设计',
-    
     successTitle: '反馈已提交！',
     successDesc: '感谢您的反馈。我们会尽快处理。',
     newFeedback: '新反馈',
-    
     back: '返回',
-    
     errorMessage: '请输入消息',
     errorSubmit: '提交失败。请重试。',
     successSubmit: '您的反馈已成功提交！',
@@ -204,7 +174,6 @@ const translations = {
     contractorDesc: 'Partner or supplier',
     resident: 'Apartment Owner',
     residentDesc: 'Residential complex resident',
-    
     feedbackType: 'Feedback Type',
     whatToReport: 'What would you like to report?',
     remark: 'Remark',
@@ -215,7 +184,6 @@ const translations = {
     safetyDesc: 'Safety-related issue',
     gratitude: 'Gratitude',
     gratitudeDesc: 'Express gratitude',
-    
     anonymous: 'Anonymous feedback',
     yourName: 'Your name',
     contactInfo: 'Contact information',
@@ -229,7 +197,6 @@ const translations = {
     attachFile: 'Attach file',
     submit: 'Submit',
     submitting: 'Submitting...',
-    
     management: 'Management',
     sales: 'Sales',
     it: 'IT',
@@ -239,37 +206,59 @@ const translations = {
     hr: 'HR',
     marketing: 'Marketing',
     design: 'Design',
-    
     successTitle: 'Feedback submitted!',
     successDesc: 'Thank you for your feedback. We will review it soon.',
     newFeedback: 'New feedback',
-    
     back: 'Back',
-    
     errorMessage: 'Please enter a message',
     errorSubmit: 'Error submitting. Please try again.',
     successSubmit: 'Your feedback was successfully submitted!',
   },
 };
 
-interface I18nStore {
+type TranslationKey = keyof typeof translations.ru;
+
+interface I18nContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   t: (key: TranslationKey) => string;
 }
 
-export const useI18n = create<I18nStore>()(
-  persist(
-    (set, get) => ({
-      language: 'ru',
-      setLanguage: (lang) => set({ language: lang }),
-      t: (key) => {
-        const lang = get().language;
-        return translations[lang][key] || translations.ru[key] || key;
-      },
-    }),
-    {
-      name: 'language-storage',
+const I18nContext = createContext<I18nContextType | null>(null);
+
+export const I18nProvider = ({ children }: { children: ReactNode }) => {
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('language');
+      return (saved as Language) || 'ru';
     }
-  )
-);
+    return 'ru';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('language', language);
+  }, [language]);
+
+  const setLanguage = (lang: Language) => setLanguageState(lang);
+
+  const t = (key: TranslationKey): string => {
+    return translations[language][key] || translations.ru[key] || key;
+  };
+
+  const value = { language, setLanguage, t };
+
+  return React.createElement(I18nContext.Provider, { value }, children);
+};
+
+export const useI18n = (): I18nContextType => {
+  const context = useContext(I18nContext);
+  if (!context) {
+    // Fallback for when provider is not available
+    return {
+      language: 'ru',
+      setLanguage: () => {},
+      t: (key) => translations.ru[key] || key,
+    };
+  }
+  return context;
+};

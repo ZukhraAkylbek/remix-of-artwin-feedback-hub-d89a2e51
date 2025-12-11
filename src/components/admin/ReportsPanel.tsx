@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Feedback, Department } from '@/types/feedback';
+import { Feedback, Department, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Send, FileText, Loader2 } from 'lucide-react';
 import { getSettings } from '@/lib/storage';
@@ -31,8 +31,16 @@ export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
 
   const departmentFeedback = feedback.filter(f => f.department === department);
 
+  const typeStats = Object.keys(FEEDBACK_TYPE_CONFIG).map(type => ({
+    type,
+    count: departmentFeedback.filter(f => f.type === type).length,
+    config: FEEDBACK_TYPE_CONFIG[type as keyof typeof FEEDBACK_TYPE_CONFIG]
+  }));
+
   const generateReport = async () => {
     setIsGenerating(true);
+
+    const typeBreakdown = typeStats.map(t => `- ${t.config.label}: ${t.count}`).join('\n');
 
     const mockReport = `
 📊 Стратегический отчёт по обращениям
@@ -42,14 +50,13 @@ export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
 
 📈 Статистика:
 - Всего обращений: ${departmentFeedback.length}
-- Жалоб: ${departmentFeedback.filter(f => f.type === 'complaint').length}
-- Предложений: ${departmentFeedback.filter(f => f.type === 'suggestion').length}
+${typeBreakdown}
 - Новых: ${departmentFeedback.filter(f => f.status === 'new').length}
 - В работе: ${departmentFeedback.filter(f => f.status === 'in_progress').length}
 - Решённых: ${departmentFeedback.filter(f => f.status === 'resolved').length}
 
 🔍 Ключевые выводы:
-1. Необходимо обратить внимание на срочные обращения
+1. Необходимо обратить внимание на новые обращения
 2. Рекомендуется улучшить коммуникацию с заявителями
 3. Следует оптимизировать время обработки заявок
 
@@ -59,7 +66,6 @@ export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
 - Проводить еженедельный разбор открытых заявок
     `;
     
-    // Simulate delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     setReport(mockReport);
     setIsGenerating(false);
@@ -92,9 +98,7 @@ export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-2xl font-semibold mb-2">Отчёты</h1>
-        <p className="text-muted-foreground">
-          Генерация стратегических отчётов на основе обращений
-        </p>
+        <p className="text-muted-foreground">Генерация стратегических отчётов</p>
       </div>
 
       <div className="card-elevated p-6">
@@ -105,30 +109,18 @@ export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
             </div>
             <div>
               <h3 className="font-semibold">Стратегический отчёт</h3>
-              <p className="text-sm text-muted-foreground">
-                На основе {departmentFeedback.length} обращений
-              </p>
+              <p className="text-sm text-muted-foreground">На основе {departmentFeedback.length} обращений</p>
             </div>
           </div>
-          <Button 
-            onClick={generateReport} 
-            disabled={isGenerating || departmentFeedback.length === 0}
-            className="gap-2"
-          >
-            {isGenerating ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
+          <Button onClick={generateReport} disabled={isGenerating || departmentFeedback.length === 0} className="gap-2">
+            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {isGenerating ? 'Генерация...' : 'Сгенерировать'}
           </Button>
         </div>
 
         {report && (
           <div className="space-y-4 animate-slide-up">
-            <div className="p-4 rounded-lg bg-muted/50 whitespace-pre-wrap text-sm">
-              {report}
-            </div>
+            <div className="p-4 rounded-lg bg-muted/50 whitespace-pre-wrap text-sm">{report}</div>
             <Button variant="outline" onClick={sendToTelegram} className="gap-2">
               <Send className="w-4 h-4" />
               Отправить в Telegram
