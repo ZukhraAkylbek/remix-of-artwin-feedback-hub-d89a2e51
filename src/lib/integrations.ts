@@ -1,4 +1,4 @@
-import { Feedback } from '@/types/feedback';
+import { Feedback, Department } from '@/types/feedback';
 import { getDepartmentSettings, getDepartmentName } from './departmentSettings';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -67,13 +67,85 @@ const getUrgencyName = (urgency: string): string => {
   return urgency === 'urgent' ? 'Срочно' : 'Обычно';
 };
 
-const getStatusName = (status: string): string => {
+export const getStatusName = (status: string): string => {
   const names: Record<string, string> = {
     new: 'Новая',
     in_progress: 'В работе',
     resolved: 'Решена'
   };
   return names[status] || status;
+};
+
+// Update status in Google Sheets when changed in admin
+export const updateStatusInGoogleSheets = async (
+  feedbackId: string, 
+  newStatus: string,
+  department: Department
+): Promise<boolean> => {
+  const deptSettings = await getDepartmentSettings(department);
+  
+  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
+    console.log('Google Sheets not configured for department:', department);
+    return false;
+  }
+
+  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('update-sheet-status', {
+      body: {
+        spreadsheetId,
+        feedbackId,
+        newStatus: getStatusName(newStatus),
+        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
+        privateKey: deptSettings.googlePrivateKey
+      }
+    });
+
+    if (error) {
+      console.error('Update sheet status error:', error);
+      return false;
+    }
+
+    console.log('Sheet status update result:', data);
+    return data?.success === true;
+  } catch (error) {
+    console.error('Error updating sheet status:', error);
+    return false;
+  }
+};
+
+// Sync statuses from Google Sheets to database
+export const syncStatusesFromGoogleSheets = async (department: Department): Promise<{ success: boolean; updatedCount: number }> => {
+  const deptSettings = await getDepartmentSettings(department);
+  
+  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
+    console.log('Google Sheets not configured for department:', department);
+    return { success: false, updatedCount: 0 };
+  }
+
+  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('sync-from-sheets', {
+      body: {
+        spreadsheetId,
+        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
+        privateKey: deptSettings.googlePrivateKey
+      }
+    });
+
+    if (error) {
+      console.error('Sync from sheets error:', error);
+      return { success: false, updatedCount: 0 };
+    }
+
+    console.log('Sync from sheets result:', data);
+    return { success: data?.success === true, updatedCount: data?.updatedCount || 0 };
+  } catch (error) {
+    console.error('Error syncing from sheets:', error);
+    return { success: false, updatedCount: 0 };
+  }
 };
 
 // Extract spreadsheet ID from URL or plain ID

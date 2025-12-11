@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Feedback, FeedbackStatus, Comment } from '@/types/feedback';
+import { Feedback, FeedbackStatus, Comment, Department } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
 import { updateFeedbackStatus, deleteFeedbackById } from '@/lib/database';
+import { updateStatusInGoogleSheets } from '@/lib/integrations';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -82,6 +83,12 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       setCurrentStatus(status);
       onUpdate();
       toast.success('Статус обновлён');
+      
+      // Sync to Google Sheets
+      const sheetUpdated = await updateStatusInGoogleSheets(ticket.id, status, ticket.department as Department);
+      if (sheetUpdated) {
+        console.log('Status synced to Google Sheets');
+      }
     } else {
       toast.error('Ошибка обновления статуса');
     }
