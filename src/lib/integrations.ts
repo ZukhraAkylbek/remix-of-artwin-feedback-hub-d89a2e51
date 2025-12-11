@@ -212,4 +212,45 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
   }
 };
 
+// Send feedback to Bitrix24 as a task
+export const sendToBitrix = async (feedback: Feedback): Promise<boolean> => {
+  const deptSettings = await getDepartmentSettings(feedback.department);
+  
+  if (!deptSettings?.bitrixWebhookUrl) {
+    console.log('Bitrix24 webhook not configured for department:', feedback.department);
+    return false;
+  }
+
+  const title = `${feedback.type === 'complaint' ? '🔴 Жалоба' : '🟢 Предложение'}: ${feedback.message.slice(0, 50)}${feedback.message.length > 50 ? '...' : ''}`;
+
+  try {
+    console.log('Sending to Bitrix24...');
+    
+    const { data, error } = await supabase.functions.invoke('send-to-bitrix', {
+      body: {
+        webhookUrl: deptSettings.bitrixWebhookUrl,
+        title,
+        description: feedback.message,
+        type: getTypeName(feedback.type),
+        urgency: getUrgencyName(feedback.urgency),
+        department: getDepartmentName(feedback.department),
+        contactName: feedback.isAnonymous ? undefined : feedback.name,
+        contactInfo: feedback.contact,
+        feedbackId: feedback.id
+      }
+    });
+
+    if (error) {
+      console.error('Bitrix24 edge function error:', error);
+      return false;
+    }
+
+    console.log('Bitrix24 result:', data);
+    return data?.success === true;
+  } catch (error) {
+    console.error('Bitrix24 error:', error);
+    return false;
+  }
+};
+
 export { getDepartmentName };
