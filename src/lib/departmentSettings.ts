@@ -33,6 +33,8 @@ export const getDepartmentSettings = async (department: Department): Promise<Dep
 };
 
 export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> => {
+  const allDepartments: Department[] = ['management', 'sales', 'it', 'logistics', 'accounting', 'warehouse', 'hr', 'marketing', 'design'];
+  
   try {
     const { data, error } = await supabase
       .from('department_settings')
@@ -41,10 +43,9 @@ export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> 
 
     if (error) {
       console.error('Error fetching all department settings:', error);
-      return [];
     }
 
-    return (data || []).map(row => ({
+    const existingSettings = (data || []).map(row => ({
       id: row.id,
       department: row.department as Department,
       googleSheetsId: row.google_sheets_id,
@@ -54,25 +55,51 @@ export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> 
       telegramChatId: row.telegram_chat_id,
       bitrixWebhookUrl: (row as any).bitrix_webhook_url,
     }));
+
+    // Ensure all departments have settings (create empty ones for missing)
+    return allDepartments.map(dept => {
+      const existing = existingSettings.find(s => s.department === dept);
+      if (existing) return existing;
+      return {
+        id: '',
+        department: dept,
+        googleSheetsId: null,
+        googleServiceAccountEmail: null,
+        googlePrivateKey: null,
+        telegramBotToken: null,
+        telegramChatId: null,
+        bitrixWebhookUrl: null,
+      };
+    });
   } catch (e) {
     console.error('Error in getAllDepartmentSettings:', e);
-    return [];
+    return allDepartments.map(dept => ({
+      id: '',
+      department: dept,
+      googleSheetsId: null,
+      googleServiceAccountEmail: null,
+      googlePrivateKey: null,
+      telegramBotToken: null,
+      telegramChatId: null,
+      bitrixWebhookUrl: null,
+    }));
   }
 };
 
 export const saveDepartmentSettings = async (settings: DepartmentSettings): Promise<boolean> => {
   try {
+    // Use upsert to create or update
     const { error } = await supabase
       .from('department_settings')
-      .update({
+      .upsert({
+        department: settings.department,
         google_sheets_id: settings.googleSheetsId,
         google_service_account_email: settings.googleServiceAccountEmail,
         google_private_key: settings.googlePrivateKey,
         telegram_bot_token: settings.telegramBotToken,
         telegram_chat_id: settings.telegramChatId,
         bitrix_webhook_url: settings.bitrixWebhookUrl,
-      } as any)
-      .eq('department', settings.department);
+      } as any, { onConflict: 'department' });
 
     if (error) {
       console.error('Error saving department settings:', error);
