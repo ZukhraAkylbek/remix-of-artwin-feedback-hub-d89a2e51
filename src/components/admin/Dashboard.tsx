@@ -1,11 +1,9 @@
-import { Feedback, Department, FeedbackStatus } from '@/types/feedback';
+import { Feedback, Department, FeedbackStatus, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
 import { 
   MessageSquare, 
-  AlertCircle, 
   CheckCircle, 
   Clock,
-  TrendingUp,
-  Users
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,12 +11,6 @@ interface DashboardProps {
   feedback: Feedback[];
   department: Department;
 }
-
-const statusLabels: Record<FeedbackStatus, string> = {
-  new: 'Новые',
-  in_progress: 'В работе',
-  resolved: 'Решены',
-};
 
 export const Dashboard = ({ feedback, department }: DashboardProps) => {
   const departmentFeedback = feedback.filter(f => f.department === department);
@@ -28,39 +20,19 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
     new: departmentFeedback.filter(f => f.status === 'new').length,
     inProgress: departmentFeedback.filter(f => f.status === 'in_progress').length,
     resolved: departmentFeedback.filter(f => f.status === 'resolved').length,
-    complaints: departmentFeedback.filter(f => f.type === 'complaint').length,
-    suggestions: departmentFeedback.filter(f => f.type === 'suggestion').length,
   };
 
+  const typeStats = Object.keys(FEEDBACK_TYPE_CONFIG).map(type => ({
+    type,
+    count: departmentFeedback.filter(f => f.type === type).length,
+    config: FEEDBACK_TYPE_CONFIG[type as keyof typeof FEEDBACK_TYPE_CONFIG]
+  }));
+
   const statCards = [
-    { 
-      label: 'Всего обращений', 
-      value: stats.total, 
-      icon: <MessageSquare className="w-5 h-5" />,
-      color: 'text-primary',
-      bg: 'bg-primary/10'
-    },
-    { 
-      label: 'Новые', 
-      value: stats.new, 
-      icon: <Clock className="w-5 h-5" />,
-      color: 'text-warning',
-      bg: 'bg-warning/10'
-    },
-    { 
-      label: 'В работе', 
-      value: stats.inProgress, 
-      icon: <TrendingUp className="w-5 h-5" />,
-      color: 'text-blue-600',
-      bg: 'bg-blue-600/10'
-    },
-    { 
-      label: 'Решены', 
-      value: stats.resolved, 
-      icon: <CheckCircle className="w-5 h-5" />,
-      color: 'text-success',
-      bg: 'bg-success/10'
-    },
+    { label: 'Всего обращений', value: stats.total, icon: <MessageSquare className="w-5 h-5" />, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Новые', value: stats.new, icon: <Clock className="w-5 h-5" />, color: 'text-warning', bg: 'bg-warning/10' },
+    { label: 'В работе', value: stats.inProgress, icon: <TrendingUp className="w-5 h-5" />, color: 'text-blue-600', bg: 'bg-blue-600/10' },
+    { label: 'Решены', value: stats.resolved, icon: <CheckCircle className="w-5 h-5" />, color: 'text-success', bg: 'bg-success/10' },
   ];
 
   return (
@@ -72,11 +44,7 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
-          <div 
-            key={card.label} 
-            className="card-elevated p-6 animate-slide-up"
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
+          <div key={card.label} className="card-elevated p-6 animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
             <div className="flex items-center justify-between mb-4">
               <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', card.bg)}>
                 <span className={card.color}>{card.icon}</span>
@@ -92,20 +60,15 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
         <div className="card-elevated p-6">
           <h3 className="font-semibold mb-4">По типу обращения</h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-complaint" />
-                <span>Жалобы</span>
+            {typeStats.map(({ type, count, config }) => (
+              <div key={type} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color }} />
+                  <span>{config.label}</span>
+                </div>
+                <span className="font-medium">{count}</span>
               </div>
-              <span className="font-medium">{stats.complaints}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-suggestion" />
-                <span>Предложения</span>
-              </div>
-              <span className="font-medium">{stats.suggestions}</span>
-            </div>
+            ))}
           </div>
         </div>
 
@@ -117,14 +80,9 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
             <div className="space-y-3">
               {departmentFeedback.slice(0, 5).map((f) => (
                 <div key={f.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className={cn(
-                    'w-2 h-2 rounded-full',
-                    f.type === 'complaint' ? 'bg-complaint' : 'bg-suggestion'
-                  )} />
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: FEEDBACK_TYPE_CONFIG[f.type].color }} />
                   <p className="text-sm flex-1 truncate">{f.message}</p>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(f.createdAt).toLocaleDateString('ru')}
-                  </span>
+                  <span className="text-xs text-muted-foreground">{new Date(f.createdAt).toLocaleDateString('ru')}</span>
                 </div>
               ))}
             </div>

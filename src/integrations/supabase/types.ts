@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_action_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          description: string | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -77,9 +113,44 @@ export type Database = {
         }
         Relationships: []
       }
+      employees: {
+        Row: {
+          created_at: string
+          department: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          position: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          position?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           ai_analysis: Json | null
+          assigned_to: string | null
+          attachment_url: string | null
           auto_response: string | null
           bitrix_task_id: string | null
           contact: string | null
@@ -89,6 +160,7 @@ export type Database = {
           is_anonymous: boolean
           message: string
           name: string | null
+          object_code: string | null
           status: string
           sub_status: string | null
           type: string
@@ -97,6 +169,8 @@ export type Database = {
         }
         Insert: {
           ai_analysis?: Json | null
+          assigned_to?: string | null
+          attachment_url?: string | null
           auto_response?: string | null
           bitrix_task_id?: string | null
           contact?: string | null
@@ -106,6 +180,7 @@ export type Database = {
           is_anonymous?: boolean
           message: string
           name?: string | null
+          object_code?: string | null
           status?: string
           sub_status?: string | null
           type: string
@@ -114,6 +189,8 @@ export type Database = {
         }
         Update: {
           ai_analysis?: Json | null
+          assigned_to?: string | null
+          attachment_url?: string | null
           auto_response?: string | null
           bitrix_task_id?: string | null
           contact?: string | null
@@ -123,11 +200,44 @@ export type Database = {
           is_anonymous?: boolean
           message?: string
           name?: string | null
+          object_code?: string | null
           status?: string
           sub_status?: string | null
           type?: string
           urgency?: string
           user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      residential_objects: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
         }
         Relationships: []
       }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FeedbackType, UserRole, Urgency, Department, Feedback } from '@/types/feedback';
+import { FeedbackType, UserRole, Department, Feedback, RESIDENTIAL_OBJECTS, ResidentialObject, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,9 +8,11 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addFeedbackToDb } from '@/lib/database';
 import { sendToTelegram, syncToGoogleSheets, sendToBitrix } from '@/lib/integrations';
-import { Paperclip, Zap, Clock, Send } from 'lucide-react';
+import { uploadAttachment } from '@/lib/fileUpload';
+import { Paperclip, Send, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n';
 
 interface FeedbackFormProps {
   type: FeedbackType;
@@ -18,43 +20,58 @@ interface FeedbackFormProps {
   onSuccess: () => void;
 }
 
-const departmentOptions: { value: Department; label: string }[] = [
-  { value: 'management', label: 'Руководство' },
-  { value: 'sales', label: 'Продажи' },
-  { value: 'it', label: 'IT' },
-  { value: 'logistics', label: 'Логистика' },
-  { value: 'accounting', label: 'Бухгалтерия' },
-  { value: 'warehouse', label: 'Склад' },
-  { value: 'hr', label: 'HR' },
-  { value: 'marketing', label: 'Маркетинг' },
-  { value: 'design', label: 'Дизайн' },
+const departmentOptions: { value: Department; labelKey: 'management' | 'sales' | 'it' | 'logistics' | 'accounting' | 'warehouse' | 'hr' | 'marketing' | 'design' }[] = [
+  { value: 'management', labelKey: 'management' },
+  { value: 'sales', labelKey: 'sales' },
+  { value: 'it', labelKey: 'it' },
+  { value: 'logistics', labelKey: 'logistics' },
+  { value: 'accounting', labelKey: 'accounting' },
+  { value: 'warehouse', labelKey: 'warehouse' },
+  { value: 'hr', labelKey: 'hr' },
+  { value: 'marketing', labelKey: 'marketing' },
+  { value: 'design', labelKey: 'design' },
 ];
 
 export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) => {
+  const { t } = useI18n();
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
-  const [urgency, setUrgency] = useState<Urgency>('normal');
   const [department, setDepartment] = useState<Department>('management');
-  const [fileName, setFileName] = useState('');
+  const [objectCode, setObjectCode] = useState<ResidentialObject | ''>('');
+  const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (selectedFile.size > 20 * 1024 * 1024) {
+        toast.error('Файл слишком большой (макс. 20MB)');
+        return;
+      }
+      setFile(selectedFile);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) {
-      toast.error('Пожалуйста, введите сообщение');
+      toast.error(t('errorMessage'));
       return;
     }
 
     setIsSubmitting(true);
+
+    let attachmentUrl: string | undefined;
+    
+    // Upload file if selected
+    if (file) {
+      const uploadResult = await uploadAttachment(file);
+      if (uploadResult) {
+        attachmentUrl = uploadResult;
+      }
+    }
 
     const feedback: Feedback = {
       id: crypto.randomUUID(),
@@ -65,10 +82,11 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
       isAnonymous,
       contact,
       message,
-      urgency,
       department,
+      objectCode: objectCode || undefined,
       status: 'new',
-      attachmentName: fileName || undefined,
+      attachmentUrl,
+      attachmentName: file?.name,
       comments: [],
     };
 
@@ -89,16 +107,16 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
         await updateBitrixTaskId(feedback.id, bitrixResult.taskId);
       }
       
-      toast.success('Ваше обращение успешно отправлено!');
+      toast.success(t('successSubmit'));
       onSuccess();
     } else {
-      toast.error('Ошибка при отправке. Попробуйте снова.');
+      toast.error(t('errorSubmit'));
     }
 
     setIsSubmitting(false);
   };
 
-  const isComplaint = type === 'complaint';
+  const typeConfig = FEEDBACK_TYPE_CONFIG[type];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -110,7 +128,7 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
             id="anonymous"
           />
           <Label htmlFor="anonymous" className="cursor-pointer">
-            Анонимное обращение
+            {t('anonymous')}
           </Label>
         </div>
       </div>
@@ -118,7 +136,7 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
       {!isAnonymous && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-slide-up">
           <div className="space-y-2">
-            <Label htmlFor="name">Ваше имя</Label>
+            <Label htmlFor="name">{t('yourName')}</Label>
             <Input
               id="name"
               value={name}
@@ -128,12 +146,12 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="contact">Контакт для связи</Label>
+            <Label htmlFor="contact">{t('contactInfo')}</Label>
             <Input
               id="contact"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
-              placeholder="Email или телефон"
+              placeholder={t('emailOrPhone')}
               className="h-12"
             />
           </div>
@@ -141,94 +159,82 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="message">Сообщение</Label>
+        <Label htmlFor="message">{t('message')}</Label>
         <Textarea
           id="message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={isComplaint ? 'Опишите вашу проблему...' : 'Опишите вашу идею...'}
+          placeholder={t('describeMessage')}
           className="min-h-[150px] resize-none"
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Департамент</Label>
-        <Select value={department} onValueChange={(value) => setDepartment(value as Department)}>
-          <SelectTrigger className="h-12 bg-background">
-            <SelectValue placeholder="Выберите департамент" />
-          </SelectTrigger>
-          <SelectContent className="bg-background border border-border z-50">
-            {departmentOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex flex-wrap gap-4">
-        <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-background">
-          <span className="text-sm text-muted-foreground">Срочность:</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setUrgency('normal')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
-                urgency === 'normal' 
-                  ? 'bg-muted text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Clock className="w-4 h-4" />
-              Обычно
-            </button>
-            <button
-              type="button"
-              onClick={() => setUrgency('urgent')}
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
-                urgency === 'urgent' 
-                  ? 'bg-warning text-warning-foreground' 
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Zap className="w-4 h-4" />
-              Срочно
-            </button>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>{t('object')}</Label>
+          <Select value={objectCode} onValueChange={(value) => setObjectCode(value as ResidentialObject)}>
+            <SelectTrigger className="h-12 bg-background">
+              <SelectValue placeholder={t('selectObject')} />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border z-50">
+              {RESIDENTIAL_OBJECTS.map((obj) => (
+                <SelectItem key={obj.code} value={obj.code}>
+                  {obj.code} - {obj.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <label className="flex items-center gap-2 p-3 rounded-lg border border-border bg-background cursor-pointer hover:bg-muted/50 transition-colors">
-          <Paperclip className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm">
-            {fileName || 'Прикрепить файл'}
-          </span>
-          <input
-            type="file"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </label>
+        <div className="space-y-2">
+          <Label>{t('department')}</Label>
+          <Select value={department} onValueChange={(value) => setDepartment(value as Department)}>
+            <SelectTrigger className="h-12 bg-background">
+              <SelectValue placeholder={t('selectDepartment')} />
+            </SelectTrigger>
+            <SelectContent className="bg-background border border-border z-50">
+              {departmentOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      <label className="flex items-center gap-2 p-3 rounded-lg border border-border bg-background cursor-pointer hover:bg-muted/50 transition-colors">
+        <Paperclip className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm">
+          {file?.name || t('attachFile')}
+        </span>
+        <input
+          type="file"
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+        />
+      </label>
 
       <Button
         type="submit"
-        variant={isComplaint ? 'complaint' : 'suggestion'}
         size="lg"
         className="w-full"
+        style={{ 
+          backgroundColor: typeConfig.color,
+          color: 'white'
+        }}
         disabled={isSubmitting}
       >
         {isSubmitting ? (
           <>
-            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            Отправка...
+            <Loader2 className="w-5 h-5 animate-spin" />
+            {t('submitting')}
           </>
         ) : (
           <>
             <Send className="w-5 h-5" />
-            Отправить {isComplaint ? 'жалобу' : 'предложение'}
+            {t('submit')} {typeConfig.label.toLowerCase()}
           </>
         )}
       </Button>

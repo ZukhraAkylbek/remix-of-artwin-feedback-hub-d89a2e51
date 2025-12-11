@@ -1,4 +1,4 @@
-import { Feedback, Department } from '@/types/feedback';
+import { Feedback, Department, FEEDBACK_TYPE_CONFIG, RESIDENTIAL_OBJECTS } from '@/types/feedback';
 import { getDepartmentSettings, getDepartmentName } from './departmentSettings';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,15 +16,26 @@ export const sendToTelegram = async (feedback: Feedback): Promise<boolean> => {
     return false;
   }
 
-  const emoji = feedback.type === 'complaint' ? '🔴' : '🟢';
-  const urgencyEmoji = feedback.urgency === 'urgent' ? '⚡️' : '';
+  const typeConfig = FEEDBACK_TYPE_CONFIG[feedback.type];
+  const typeEmojis: Record<string, string> = {
+    remark: '🔴',
+    suggestion: '🔵',
+    safety: '🟡',
+    gratitude: '🟢',
+  };
+  const emoji = typeEmojis[feedback.type] || '⚪';
+  
+  const objectName = feedback.objectCode 
+    ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.name || feedback.objectCode
+    : 'Не указан';
   
   const message = `
-${emoji} ${urgencyEmoji} Новое обращение
+${emoji} Новое обращение
 
-📋 Тип: ${feedback.type === 'complaint' ? 'Жалоба' : 'Предложение'}
-👤 От: ${feedback.isAnonymous ? 'Анонимно' : feedback.name} (${feedback.userRole === 'employee' ? 'Сотрудник' : feedback.userRole === 'client' ? 'Клиент' : 'Подрядчик'})
+📋 Тип: ${typeConfig.label}
+👤 От: ${feedback.isAnonymous ? 'Анонимно' : feedback.name} (${getRoleName(feedback.userRole)})
 🏢 Департамент: ${getDepartmentName(feedback.department)}
+🏠 Объект: ${objectName}
 📝 Сообщение: ${feedback.message.slice(0, 200)}${feedback.message.length > 200 ? '...' : ''}
 `;
 
@@ -54,17 +65,14 @@ const getRoleName = (role: string): string => {
   const names: Record<string, string> = {
     employee: 'Сотрудник',
     client: 'Клиент',
-    contractor: 'Подрядчик'
+    contractor: 'Подрядчик',
+    resident: 'Владелец квартиры'
   };
   return names[role] || role;
 };
 
 const getTypeName = (type: string): string => {
-  return type === 'complaint' ? 'Жалоба' : 'Предложение';
-};
-
-const getUrgencyName = (urgency: string): string => {
-  return urgency === 'urgent' ? 'Срочно' : 'Обычно';
+  return FEEDBACK_TYPE_CONFIG[type as keyof typeof FEEDBACK_TYPE_CONFIG]?.label || type;
 };
 
 export const getStatusName = (status: string): string => {
@@ -176,6 +184,9 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
   }
 
   const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
+  const objectName = feedback.objectCode 
+    ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.name || feedback.objectCode
+    : '';
 
   try {
     console.log('Sending to Google Sheets:', { spreadsheetId, department: feedback.department });
@@ -183,7 +194,7 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
     const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
       body: {
         spreadsheetId,
-        range: 'A:K',
+        range: 'A:L',
         values: [[
           feedback.id,
           feedback.createdAt,
@@ -192,10 +203,11 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
           feedback.isAnonymous ? 'Анонимно' : feedback.name,
           feedback.contact || '',
           feedback.message,
-          getUrgencyName(feedback.urgency),
+          objectName,
           getDepartmentName(feedback.department),
           getStatusName(feedback.status),
-          feedback.subStatus || ''
+          feedback.subStatus || '',
+          feedback.attachmentUrl || ''
         ]],
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
         privateKey: deptSettings.googlePrivateKey
@@ -224,7 +236,8 @@ export const sendToBitrix = async (feedback: Feedback): Promise<{ success: boole
     return { success: false };
   }
 
-  const title = `${feedback.type === 'complaint' ? '🔴 Жалоба' : '🟢 Предложение'}: ${feedback.message.slice(0, 50)}${feedback.message.length > 50 ? '...' : ''}`;
+  const typeConfig = FEEDBACK_TYPE_CONFIG[feedback.type];
+  const title = `${typeConfig.label}: ${feedback.message.slice(0, 50)}${feedback.message.length > 50 ? '...' : ''}`;
 
   try {
     console.log('Sending to Bitrix24...');
@@ -235,7 +248,6 @@ export const sendToBitrix = async (feedback: Feedback): Promise<{ success: boole
         title,
         description: feedback.message,
         type: getTypeName(feedback.type),
-        urgency: getUrgencyName(feedback.urgency),
         department: getDepartmentName(feedback.department),
         contactName: feedback.isAnonymous ? undefined : feedback.name,
         contactInfo: feedback.contact,
@@ -288,17 +300,7 @@ export const syncStatusesFromBitrix = async (department: Department): Promise<{ 
 
 // Get sub-status display name
 export const getSubStatusName = (subStatus: string | null): string => {
-  const names: Record<string, string> = {
-    working_group: 'Рабочая группа',
-    management_meeting: 'Собрание руководства',
-    foremen_tech_meeting: 'Собрание прорабов с тех отделом (пн 8:00)',
-    managers_meeting: 'Собрание руководителей (пн 10:00)',
-    top_management_meeting: 'Собрание топ менеджмента (пн 14:00)',
-    site_inspection: 'Обходы по объектам',
-    project_committee: 'Собрание проектного комитета (1/в 2 недели)',
-    production_meeting: 'Производственные собрания'
-  };
-  return subStatus ? names[subStatus] || subStatus : '';
+  return subStatus || '';
 };
 
 export { getDepartmentName };

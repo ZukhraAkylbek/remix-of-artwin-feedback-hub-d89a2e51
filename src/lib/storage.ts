@@ -1,4 +1,4 @@
-import { Feedback, AppSettings } from '@/types/feedback';
+import { Feedback, AppSettings, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllFeedback } from './database';
 
@@ -103,13 +103,14 @@ const getRoleName = (role: string): string => {
   const names: Record<string, string> = {
     employee: 'Сотрудник',
     client: 'Клиент',
-    contractor: 'Подрядчик'
+    contractor: 'Подрядчик',
+    resident: 'Владелец квартиры'
   };
   return names[role] || role;
 };
 
 const getTypeName = (type: string): string => {
-  return type === 'complaint' ? 'Жалоба' : 'Предложение';
+  return FEEDBACK_TYPE_CONFIG[type as keyof typeof FEEDBACK_TYPE_CONFIG]?.label || type;
 };
 
 const getDepartmentNameCSV = (dept: string): string => {
@@ -127,10 +128,6 @@ const getDepartmentNameCSV = (dept: string): string => {
   return names[dept] || dept;
 };
 
-const getUrgencyName = (urgency: string): string => {
-  return urgency === 'urgent' ? 'Срочно' : 'Обычно';
-};
-
 const getStatusName = (status: string): string => {
   const names: Record<string, string> = {
     new: 'Новая',
@@ -143,7 +140,7 @@ const getStatusName = (status: string): string => {
 export const exportToCSV = async (): Promise<string> => {
   const feedback = await fetchAllFeedback();
   const BOM = '\uFEFF';
-  const headers = ['ID', 'Дата', 'Роль', 'Тип', 'Имя', 'Контакт', 'Сообщение', 'Срочность', 'Департамент', 'Статус'];
+  const headers = ['ID', 'Дата', 'Роль', 'Тип', 'Имя', 'Контакт', 'Сообщение', 'Объект', 'Департамент', 'Статус'];
   const rows = feedback.map(f => [
     f.id,
     f.createdAt,
@@ -152,7 +149,7 @@ export const exportToCSV = async (): Promise<string> => {
     f.isAnonymous ? 'Анонимно' : f.name,
     f.contact || '',
     `"${f.message.replace(/"/g, '""')}"`,
-    getUrgencyName(f.urgency),
+    f.objectCode || '',
     getDepartmentNameCSV(f.department),
     getStatusName(f.status)
   ]);
