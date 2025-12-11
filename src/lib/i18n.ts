@@ -1,4 +1,5 @@
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { ReactNode } from 'react';
+import { create } from 'zustand';
 
 export type Language = 'ru' | 'ky' | 'zh' | 'en';
 
@@ -218,47 +219,41 @@ const translations = {
 
 type TranslationKey = keyof typeof translations.ru;
 
-interface I18nContextType {
+interface I18nStore {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: TranslationKey) => string;
 }
 
-const I18nContext = createContext<I18nContextType | null>(null);
-
-export const I18nProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('language');
-      return (saved as Language) || 'ru';
+const getInitialLanguage = (): Language => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('language');
+    if (saved && ['ru', 'ky', 'zh', 'en'].includes(saved)) {
+      return saved as Language;
     }
-    return 'ru';
-  });
+  }
+  return 'ru';
+};
 
-  useEffect(() => {
-    localStorage.setItem('language', language);
-  }, [language]);
+export const useI18nStore = create<I18nStore>((set) => ({
+  language: getInitialLanguage(),
+  setLanguage: (lang: Language) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('language', lang);
+    }
+    set({ language: lang });
+  },
+}));
 
-  const setLanguage = (lang: Language) => setLanguageState(lang);
-
+export const useI18n = () => {
+  const { language, setLanguage } = useI18nStore();
+  
   const t = (key: TranslationKey): string => {
     return translations[language][key] || translations.ru[key] || key;
   };
 
-  const value = { language, setLanguage, t };
-
-  return React.createElement(I18nContext.Provider, { value }, children);
+  return { language, setLanguage, t };
 };
 
-export const useI18n = (): I18nContextType => {
-  const context = useContext(I18nContext);
-  if (!context) {
-    // Fallback for when provider is not available
-    return {
-      language: 'ru',
-      setLanguage: () => {},
-      t: (key) => translations.ru[key] || key,
-    };
-  }
-  return context;
+export const I18nProvider = ({ children }: { children: ReactNode }) => {
+  return children;
 };
