@@ -11,14 +11,18 @@ import {
   ChevronRight,
   Zap,
   User,
-  UserX
+  UserX,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { syncStatusesFromGoogleSheets } from '@/lib/integrations';
+import { toast } from 'sonner';
 
 interface TicketListProps {
   feedback: Feedback[];
   department: Department;
   onSelectTicket: (id: string) => void;
+  onRefresh: () => void;
 }
 
 const statusConfig: Record<FeedbackStatus, { label: string; icon: React.ReactNode; color: string }> = {
@@ -27,13 +31,30 @@ const statusConfig: Record<FeedbackStatus, { label: string; icon: React.ReactNod
   resolved: { label: 'Решена', icon: <CheckCircle className="w-4 h-4" />, color: 'bg-success/10 text-success border-success/20' },
 };
 
-export const TicketList = ({ feedback, department, onSelectTicket }: TicketListProps) => {
+export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: TicketListProps) => {
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const departmentFeedback = feedback.filter(f => f.department === department);
   const filteredFeedback = statusFilter === 'all' 
     ? departmentFeedback 
     : departmentFeedback.filter(f => f.status === statusFilter);
+
+  const handleSyncFromSheets = async () => {
+    setIsSyncing(true);
+    const result = await syncStatusesFromGoogleSheets(department);
+    if (result.success) {
+      if (result.updatedCount > 0) {
+        toast.success(`Синхронизировано ${result.updatedCount} статусов`);
+        onRefresh();
+      } else {
+        toast.info('Все статусы актуальны');
+      }
+    } else {
+      toast.error('Ошибка синхронизации');
+    }
+    setIsSyncing(false);
+  };
 
   return (
     <div className="space-y-6">
@@ -43,7 +64,20 @@ export const TicketList = ({ feedback, department, onSelectTicket }: TicketListP
           <p className="text-muted-foreground">Всего {filteredFeedback.length} обращений</p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSyncFromSheets}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Синхронизировать из таблицы
+          </Button>
           {(['all', 'new', 'in_progress', 'resolved'] as const).map((status) => (
             <Button
               key={status}

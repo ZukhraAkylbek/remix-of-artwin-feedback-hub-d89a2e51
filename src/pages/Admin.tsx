@@ -95,6 +95,7 @@ const Admin = () => {
               feedback={feedback} 
               department={department}
               onSelectTicket={setSelectedTicketId}
+              onRefresh={refreshData}
             />
           )}
 

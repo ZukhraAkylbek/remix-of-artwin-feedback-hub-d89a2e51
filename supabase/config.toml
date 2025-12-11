@@ -1,1 +1,10 @@
 project_id = "royuzcroobvazlpjkrql"
+
+[functions.submit-to-sheets]
+verify_jwt = false
+
+[functions.update-sheet-status]
+verify_jwt = false
+
+[functions.sync-from-sheets]
+verify_jwt = false
