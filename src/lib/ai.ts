@@ -1,4 +1,4 @@
-import { Department, AIAnalysis } from '@/types/feedback';
+import { Department, AIAnalysis, FeedbackType } from '@/types/feedback';
 
 const DEPARTMENT_KEYWORDS: Record<Department, string[]> = {
   management: ['руководство', 'директор', 'стратегия', 'решение', 'управление'],
@@ -38,8 +38,12 @@ export const analyzeWithAI = async (message: string): Promise<AIAnalysis> => {
   };
 };
 
-export const generateAutoResponse = async (message: string, type: 'complaint' | 'suggestion'): Promise<string> => {
-  return type === 'complaint' 
-    ? 'Благодарим вас за обращение. Мы зафиксировали вашу жалобу и приступили к её рассмотрению. Наши специалисты свяжутся с вами в ближайшее время.'
-    : 'Спасибо за ваше предложение! Мы ценим вашу обратную связь и обязательно рассмотрим её на ближайшем совещании.';
+export const generateAutoResponse = async (message: string, type: FeedbackType): Promise<string> => {
+  const responses: Record<FeedbackType, string> = {
+    remark: 'Благодарим вас за обращение. Мы зафиксировали ваше замечание и приступили к его рассмотрению.',
+    suggestion: 'Спасибо за ваше предложение! Мы ценим вашу обратную связь и обязательно рассмотрим её.',
+    safety: 'Ваше сообщение о безопасности принято. Мы незамедлительно приступим к его рассмотрению.',
+    gratitude: 'Большое спасибо за вашу благодарность! Мы рады, что наша работа вам понравилась.',
+  };
+  return responses[type] || 'Благодарим за ваше обращение.';
 };

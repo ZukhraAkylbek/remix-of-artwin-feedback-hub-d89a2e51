@@ -1,30 +1,33 @@
 import { useState, useEffect } from 'react';
-import { Feedback, FeedbackStatus, Comment, Department } from '@/types/feedback';
+import { Feedback, FeedbackStatus, Comment, Department, FEEDBACK_TYPE_CONFIG, FeedbackType, RESIDENTIAL_OBJECTS } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { 
   ArrowLeft, 
-  AlertCircle, 
-  Lightbulb, 
   Sparkles, 
   Send,
   Clock,
   Loader2,
   CheckCircle,
-  Zap,
   User,
   UserX,
   Mail,
   Paperclip,
   MessageSquare,
   Trash2,
-  Plus
+  Plus,
+  AlertTriangle,
+  Lightbulb,
+  Shield,
+  Heart,
+  ExternalLink,
+  Building
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee } from '@/lib/database';
 import { updateStatusInGoogleSheets } from '@/lib/integrations';
 import { toast } from 'sonner';
 import {
@@ -67,6 +70,13 @@ const statusOptions: { id: FeedbackStatus; label: string; icon: React.ReactNode 
   { id: 'resolved', label: 'Решена', icon: <CheckCircle className="w-4 h-4" /> },
 ];
 
+const typeIcons: Record<FeedbackType, React.ReactNode> = {
+  remark: <AlertTriangle className="w-6 h-6" />,
+  suggestion: <Lightbulb className="w-6 h-6" />,
+  safety: <Shield className="w-6 h-6" />,
+  gratitude: <Heart className="w-6 h-6" />,
+};
+
 export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -80,14 +90,25 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [newSubStatusName, setNewSubStatusName] = useState('');
   const [isAddingSubStatus, setIsAddingSubStatus] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [assignedEmployee, setAssignedEmployee] = useState<string | undefined>(ticket.assignedTo);
+
+  const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type];
+  const objectInfo = ticket.objectCode ? RESIDENTIAL_OBJECTS.find(o => o.code === ticket.objectCode) : null;
 
   useEffect(() => {
     loadSubStatuses();
+    loadEmployees();
   }, [ticket.department]);
 
   const loadSubStatuses = async () => {
     const statuses = await fetchSubStatuses(ticket.department);
     setSubStatuses(statuses);
+  };
+
+  const loadEmployees = async () => {
+    const emps = await fetchEmployees(ticket.department);
+    setEmployees(emps);
   };
 
   const handleAnalyze = async () => {
@@ -113,18 +134,12 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
     const newSubStatus = status === 'in_progress' ? currentSubStatus : null;
     const success = await updateFeedbackStatus(ticket.id, status, newSubStatus);
     if (success) {
+      await logAdminAction('status_change', 'feedback', ticket.id, { status: currentStatus }, { status });
       setCurrentStatus(status);
-      if (status !== 'in_progress') {
-        setCurrentSubStatus(null);
-      }
+      if (status !== 'in_progress') setCurrentSubStatus(null);
       onUpdate();
       toast.success('Статус обновлён');
-      
-      // Sync to Google Sheets with sub-status
-      const sheetUpdated = await updateStatusInGoogleSheets(ticket.id, status, ticket.department as Department, newSubStatus);
-      if (sheetUpdated) {
-        console.log('Status synced to Google Sheets');
-      }
+      await updateStatusInGoogleSheets(ticket.id, status, ticket.department as Department, newSubStatus);
     } else {
       toast.error('Ошибка обновления статуса');
     }
@@ -140,20 +155,12 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       setCurrentSubStatus(selectedSubStatus.name);
       onUpdate();
       toast.success('Статус решения обновлён');
-      
-      // Sync to Google Sheets with sub-status
-      const sheetUpdated = await updateStatusInGoogleSheets(ticket.id, 'in_progress', ticket.department as Department, selectedSubStatus.name);
-      if (sheetUpdated) {
-        console.log('Sub-status synced to Google Sheets');
-      }
-    } else {
-      toast.error('Ошибка обновления статуса решения');
+      await updateStatusInGoogleSheets(ticket.id, 'in_progress', ticket.department as Department, selectedSubStatus.name);
     }
   };
 
   const handleAddSubStatus = async () => {
     if (!newSubStatusName.trim()) return;
-    
     setIsAddingSubStatus(true);
     const newStatus = await addSubStatus(newSubStatusName.trim(), ticket.department);
     if (newStatus) {
@@ -161,16 +168,26 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       setNewSubStatusName('');
       setShowAddDialog(false);
       toast.success('Статус решения добавлен');
-    } else {
-      toast.error('Ошибка добавления статуса');
     }
     setIsAddingSubStatus(false);
+  };
+
+  const handleAssignEmployee = async (employeeId: string) => {
+    const success = await updateAssignedEmployee(ticket.id, employeeId || null);
+    if (success) {
+      const emp = employees.find(e => e.id === employeeId);
+      await logAdminAction('assign_employee', 'feedback', ticket.id, null, { employeeId, employeeName: emp?.name });
+      setAssignedEmployee(employeeId);
+      toast.success('Ответственный назначен');
+      onUpdate();
+    }
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     const success = await deleteFeedbackById(ticket.id);
     if (success) {
+      await logAdminAction('delete', 'feedback', ticket.id);
       toast.success('Обращение удалено');
       onBack();
       onUpdate();
@@ -182,27 +199,14 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
 
   const handleAddComment = () => {
     if (!newComment.trim()) return;
-    
-    const comment: Comment = {
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      author: 'Администратор',
-      text: newComment,
-    };
-    
     setNewComment('');
     toast.success('Комментарий добавлен');
   };
 
-  const currentSubStatusDisplay = currentSubStatus || '';
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <button 
-          onClick={onBack}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <button onClick={onBack} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Назад к списку
         </button>
@@ -214,17 +218,15 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
               Удалить
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent>
+          <AlertDialogContent className="bg-background">
             <AlertDialogHeader>
               <AlertDialogTitle>Удалить обращение?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Это действие нельзя отменить. Обращение будет удалено из базы данных.
-              </AlertDialogDescription>
+              <AlertDialogDescription>Это действие нельзя отменить.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Отмена</AlertDialogCancel>
               <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
-                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {isDeleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Удалить
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -236,40 +238,20 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
         <div className="lg:col-span-2 space-y-6">
           <div className="card-elevated p-6">
             <div className="flex items-start gap-4 mb-6">
-              <div className={cn(
-                'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-                ticket.type === 'complaint' ? 'bg-complaint-light' : 'bg-suggestion-light'
-              )}>
-                {ticket.type === 'complaint' 
-                  ? <AlertCircle className="w-6 h-6 text-complaint" />
-                  : <Lightbulb className="w-6 h-6 text-suggestion" />
-                }
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: typeConfig.bgColor, color: typeConfig.color }}>
+                {typeIcons[ticket.type]}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  <Badge variant={ticket.type === 'complaint' ? 'destructive' : 'default'}>
-                    {ticket.type === 'complaint' ? 'Жалоба' : 'Предложение'}
-                  </Badge>
-                  {ticket.urgency === 'urgent' && (
-                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
-                      <Zap className="w-3 h-3 mr-1" />
-                      Срочно
-                    </Badge>
-                  )}
+                  <Badge style={{ backgroundColor: typeConfig.color, color: 'white' }}>{typeConfig.label}</Badge>
                   {ticket.bitrixTaskId && (
-                    <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                      Bitrix #{ticket.bitrixTaskId}
-                    </Badge>
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-500">Bitrix #{ticket.bitrixTaskId}</Badge>
                   )}
-                  {currentSubStatusDisplay && (
-                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                      {currentSubStatusDisplay}
-                    </Badge>
+                  {currentSubStatus && (
+                    <Badge variant="outline" className="bg-primary/10 text-primary">{currentSubStatus}</Badge>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(ticket.createdAt).toLocaleString('ru')}
-                </p>
+                <p className="text-sm text-muted-foreground">{new Date(ticket.createdAt).toLocaleString('ru')}</p>
               </div>
             </div>
 
@@ -277,22 +259,16 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
 
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground border-t border-border pt-4">
               <span className="flex items-center gap-1.5">
-                {ticket.isAnonymous 
-                  ? <><UserX className="w-4 h-4" /> Анонимно</>
-                  : <><User className="w-4 h-4" /> {ticket.name}</>
-                }
+                {ticket.isAnonymous ? <><UserX className="w-4 h-4" /> Анонимно</> : <><User className="w-4 h-4" /> {ticket.name}</>}
               </span>
-              {ticket.contact && (
-                <span className="flex items-center gap-1.5">
-                  <Mail className="w-4 h-4" />
-                  {ticket.contact}
-                </span>
-              )}
-              {ticket.attachmentName && (
-                <span className="flex items-center gap-1.5">
+              {ticket.contact && <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" />{ticket.contact}</span>}
+              {objectInfo && <span className="flex items-center gap-1.5"><Building className="w-4 h-4" />{objectInfo.name}</span>}
+              {ticket.attachmentUrl && (
+                <a href={ticket.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-primary hover:underline">
                   <Paperclip className="w-4 h-4" />
-                  {ticket.attachmentName}
-                </span>
+                  {ticket.attachmentName || 'Файл'}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               )}
             </div>
           </div>
@@ -314,14 +290,8 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                 </div>
               </div>
               <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Краткое содержание</p>
-                  <p className="text-sm">{aiAnalysis.summary}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Рекомендуемое действие</p>
-                  <p className="text-sm">{aiAnalysis.recommendedAction}</p>
-                </div>
+                <div><p className="text-xs text-muted-foreground mb-1">Краткое содержание</p><p className="text-sm">{aiAnalysis.summary}</p></div>
+                <div><p className="text-xs text-muted-foreground mb-1">Рекомендуемое действие</p><p className="text-sm">{aiAnalysis.recommendedAction}</p></div>
               </div>
             </div>
           )}
@@ -330,10 +300,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
             <div className="card-elevated p-6 animate-scale-in">
               <h3 className="font-semibold mb-3">Автоответ</h3>
               <p className="text-sm leading-relaxed bg-muted/50 p-4 rounded-lg">{autoResponse}</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => {
-                navigator.clipboard.writeText(autoResponse);
-                toast.success('Скопировано');
-              }}>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => { navigator.clipboard.writeText(autoResponse); toast.success('Скопировано'); }}>
                 Скопировать
               </Button>
             </div>
@@ -351,9 +318,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                   <div key={comment.id} className="p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm">{comment.author}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(comment.createdAt).toLocaleString('ru')}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString('ru')}</span>
                     </div>
                     <p className="text-sm">{comment.text}</p>
                   </div>
@@ -362,15 +327,8 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
             )}
 
             <div className="flex gap-2">
-              <Textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Добавить комментарий..."
-                className="min-h-[80px]"
-              />
-              <Button onClick={handleAddComment} size="icon" className="shrink-0">
-                <Send className="w-4 h-4" />
-              </Button>
+              <Textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Добавить комментарий..." className="min-h-[80px]" />
+              <Button onClick={handleAddComment} size="icon" className="shrink-0"><Send className="w-4 h-4" /></Button>
             </div>
           </div>
         </div>
@@ -385,9 +343,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                   onClick={() => handleStatusChange(status.id)}
                   className={cn(
                     'w-full flex items-center gap-3 p-3 rounded-lg text-sm transition-colors',
-                    currentStatus === status.id 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted/50 hover:bg-muted'
+                    currentStatus === status.id ? 'bg-primary text-primary-foreground' : 'bg-muted/50 hover:bg-muted'
                   )}
                 >
                   {status.icon}
@@ -402,28 +358,16 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                   <h4 className="text-sm font-medium">Статус решения</h4>
                   <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                     <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Plus className="w-4 h-4" />
-                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Plus className="w-4 h-4" /></Button>
                     </DialogTrigger>
                     <DialogContent className="bg-background">
                       <DialogHeader>
                         <DialogTitle>Добавить статус решения</DialogTitle>
-                        <DialogDescription>
-                          Введите название нового статуса решения для этого департамента
-                        </DialogDescription>
+                        <DialogDescription>Введите название нового статуса</DialogDescription>
                       </DialogHeader>
-                      <Input
-                        value={newSubStatusName}
-                        onChange={(e) => setNewSubStatusName(e.target.value)}
-                        placeholder="Название статуса..."
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddSubStatus()}
-                      />
+                      <Input value={newSubStatusName} onChange={(e) => setNewSubStatusName(e.target.value)} placeholder="Название статуса..." onKeyDown={(e) => e.key === 'Enter' && handleAddSubStatus()} />
                       <DialogFooter>
-                        <Button 
-                          onClick={handleAddSubStatus} 
-                          disabled={isAddingSubStatus || !newSubStatusName.trim()}
-                        >
+                        <Button onClick={handleAddSubStatus} disabled={isAddingSubStatus || !newSubStatusName.trim()}>
                           {isAddingSubStatus && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                           Добавить
                         </Button>
@@ -432,59 +376,45 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                   </Dialog>
                 </div>
                 
-                {subStatuses.length > 0 ? (
-                  <Select 
-                    value={subStatuses.find(s => s.name === currentSubStatus)?.id || ''} 
-                    onValueChange={handleSubStatusChange}
-                  >
-                    <SelectTrigger className="w-full bg-background">
-                      <SelectValue placeholder="Выберите статус решения" />
-                    </SelectTrigger>
+                {subStatuses.length > 0 && (
+                  <Select value={subStatuses.find(s => s.name === currentSubStatus)?.id || ''} onValueChange={handleSubStatusChange}>
+                    <SelectTrigger className="w-full bg-background"><SelectValue placeholder="Выберите статус решения" /></SelectTrigger>
                     <SelectContent className="bg-background border border-border z-50">
                       {subStatuses.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                          {option.name}
-                        </SelectItem>
+                        <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Нет статусов решения. Нажмите + чтобы добавить.
-                  </p>
                 )}
               </div>
             )}
           </div>
 
-          <div className="card-elevated p-6 space-y-3">
-            <h3 className="font-semibold mb-2">Действия</h3>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start gap-2"
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-            >
-              {isAnalyzing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              Анализировать
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start gap-2"
-              onClick={handleGenerateResponse}
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <MessageSquare className="w-4 h-4" />
-              )}
-              Сгенерировать ответ
-            </Button>
+          <div className="card-elevated p-6">
+            <h3 className="font-semibold mb-4">Ответственный</h3>
+            <Select value={assignedEmployee || ''} onValueChange={handleAssignEmployee}>
+              <SelectTrigger className="w-full bg-background"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger>
+              <SelectContent className="bg-background border border-border z-50">
+                <SelectItem value="">Не назначен</SelectItem>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>{emp.name}{emp.position ? ` (${emp.position})` : ''}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="card-elevated p-6">
+            <h3 className="font-semibold mb-4">Действия</h3>
+            <div className="space-y-2">
+              <Button variant="outline" className="w-full gap-2" onClick={handleAnalyze} disabled={isAnalyzing}>
+                {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {isAnalyzing ? 'Анализ...' : 'Анализировать'}
+              </Button>
+              <Button variant="outline" className="w-full gap-2" onClick={handleGenerateResponse} disabled={isGenerating}>
+                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {isGenerating ? 'Генерация...' : 'Сгенерировать ответ'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
