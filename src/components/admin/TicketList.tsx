@@ -15,7 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { syncStatusesFromGoogleSheets } from '@/lib/integrations';
+import { syncStatusesFromGoogleSheets, syncStatusesFromBitrix, getSubStatusName } from '@/lib/integrations';
 import { toast } from 'sonner';
 
 interface TicketListProps {
@@ -33,7 +33,8 @@ const statusConfig: Record<FeedbackStatus, { label: string; icon: React.ReactNod
 
 export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: TicketListProps) => {
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
+  const [isSyncingBitrix, setIsSyncingBitrix] = useState(false);
   
   const departmentFeedback = feedback.filter(f => f.department === department);
   const filteredFeedback = statusFilter === 'all' 
@@ -41,19 +42,35 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
     : departmentFeedback.filter(f => f.status === statusFilter);
 
   const handleSyncFromSheets = async () => {
-    setIsSyncing(true);
+    setIsSyncingSheets(true);
     const result = await syncStatusesFromGoogleSheets(department);
     if (result.success) {
       if (result.updatedCount > 0) {
-        toast.success(`Синхронизировано ${result.updatedCount} статусов`);
+        toast.success(`Синхронизировано ${result.updatedCount} статусов из таблицы`);
         onRefresh();
       } else {
         toast.info('Все статусы актуальны');
       }
     } else {
-      toast.error('Ошибка синхронизации');
+      toast.error('Ошибка синхронизации с таблицей');
     }
-    setIsSyncing(false);
+    setIsSyncingSheets(false);
+  };
+
+  const handleSyncFromBitrix = async () => {
+    setIsSyncingBitrix(true);
+    const result = await syncStatusesFromBitrix(department);
+    if (result.success) {
+      if (result.updatedCount > 0) {
+        toast.success(`Синхронизировано ${result.updatedCount} статусов из Bitrix24`);
+        onRefresh();
+      } else {
+        toast.info('Все статусы актуальны');
+      }
+    } else {
+      toast.error('Ошибка синхронизации с Bitrix24');
+    }
+    setIsSyncingBitrix(false);
   };
 
   return (
@@ -69,14 +86,27 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
             variant="outline"
             size="sm"
             onClick={handleSyncFromSheets}
-            disabled={isSyncing}
+            disabled={isSyncingSheets}
           >
-            {isSyncing ? (
+            {isSyncingSheets ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
             ) : (
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
-            Синхронизировать из таблицы
+            Синхр. из таблицы
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSyncFromBitrix}
+            disabled={isSyncingBitrix}
+          >
+            {isSyncingBitrix ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
+            Синхр. из Bitrix
           </Button>
           {(['all', 'new', 'in_progress', 'resolved'] as const).map((status) => (
             <Button
@@ -137,7 +167,7 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <Badge 
                     variant="outline" 
                     className={statusConfig[ticket.status].color}
@@ -145,6 +175,11 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                     {statusConfig[ticket.status].icon}
                     <span className="ml-1">{statusConfig[ticket.status].label}</span>
                   </Badge>
+                  {ticket.subStatus && (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">
+                      {getSubStatusName(ticket.subStatus)}
+                    </Badge>
+                  )}
                   <ChevronRight className="w-5 h-5 text-muted-foreground" />
                 </div>
               </div>

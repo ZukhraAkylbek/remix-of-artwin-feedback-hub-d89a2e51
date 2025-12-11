@@ -213,12 +213,12 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
 };
 
 // Send feedback to Bitrix24 as a task
-export const sendToBitrix = async (feedback: Feedback): Promise<boolean> => {
+export const sendToBitrix = async (feedback: Feedback): Promise<{ success: boolean; taskId?: string }> => {
   const deptSettings = await getDepartmentSettings(feedback.department);
   
   if (!deptSettings?.bitrixWebhookUrl) {
     console.log('Bitrix24 webhook not configured for department:', feedback.department);
-    return false;
+    return { success: false };
   }
 
   const title = `${feedback.type === 'complaint' ? '🔴 Жалоба' : '🟢 Предложение'}: ${feedback.message.slice(0, 50)}${feedback.message.length > 50 ? '...' : ''}`;
@@ -242,15 +242,60 @@ export const sendToBitrix = async (feedback: Feedback): Promise<boolean> => {
 
     if (error) {
       console.error('Bitrix24 edge function error:', error);
-      return false;
+      return { success: false };
     }
 
     console.log('Bitrix24 result:', data);
-    return data?.success === true;
+    return { success: data?.success === true, taskId: data?.taskId };
   } catch (error) {
     console.error('Bitrix24 error:', error);
-    return false;
+    return { success: false };
   }
+};
+
+// Sync statuses from Bitrix24 to database
+export const syncStatusesFromBitrix = async (department: Department): Promise<{ success: boolean; updatedCount: number }> => {
+  const deptSettings = await getDepartmentSettings(department);
+  
+  if (!deptSettings?.bitrixWebhookUrl) {
+    console.log('Bitrix24 webhook not configured for department:', department);
+    return { success: false, updatedCount: 0 };
+  }
+
+  try {
+    const { data, error } = await supabase.functions.invoke('sync-bitrix-status', {
+      body: {
+        webhookUrl: deptSettings.bitrixWebhookUrl,
+        department
+      }
+    });
+
+    if (error) {
+      console.error('Bitrix sync error:', error);
+      return { success: false, updatedCount: 0 };
+    }
+
+    console.log('Bitrix sync result:', data);
+    return { success: data?.success === true, updatedCount: data?.updatedCount || 0 };
+  } catch (error) {
+    console.error('Error syncing from Bitrix:', error);
+    return { success: false, updatedCount: 0 };
+  }
+};
+
+// Get sub-status display name
+export const getSubStatusName = (subStatus: string | null): string => {
+  const names: Record<string, string> = {
+    working_group: 'Рабочая группа',
+    management_meeting: 'Собрание руководства',
+    foremen_tech_meeting: 'Собрание прорабов с тех отделом (пн 8:00)',
+    managers_meeting: 'Собрание руководителей (пн 10:00)',
+    top_management_meeting: 'Собрание топ менеджмента (пн 14:00)',
+    site_inspection: 'Обходы по объектам',
+    project_committee: 'Собрание проектного комитета (1/в 2 недели)',
+    production_meeting: 'Производственные собрания'
+  };
+  return subStatus ? names[subStatus] || subStatus : '';
 };
 
 export { getDepartmentName };
