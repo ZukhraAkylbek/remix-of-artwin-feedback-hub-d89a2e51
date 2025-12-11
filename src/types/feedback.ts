@@ -1,18 +1,38 @@
-export type UserRole = 'employee' | 'client' | 'contractor';
-export type FeedbackType = 'complaint' | 'suggestion';
+export type UserRole = 'employee' | 'client' | 'contractor' | 'resident';
+export type FeedbackType = 'remark' | 'suggestion' | 'safety' | 'gratitude';
 export type Department = 'management' | 'sales' | 'it' | 'logistics' | 'accounting' | 'warehouse' | 'hr' | 'marketing' | 'design';
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
-export type Urgency = 'normal' | 'urgent';
-export type SubStatus = 
-  | 'working_group'
-  | 'management_meeting'
-  | 'foremen_tech_meeting'
-  | 'managers_meeting'
-  | 'top_management_meeting'
-  | 'site_inspection'
-  | 'project_committee'
-  | 'production_meeting'
-  | null;
+export type SubStatus = string | null;
+
+export type ResidentialObject = 
+  | 'TKY'
+  | 'EST'
+  | 'TKC'
+  | 'SEL'
+  | 'HYT'
+  | 'URP'
+  | 'WLT'
+  | 'LND'
+  | 'S_УЧ';
+
+export const RESIDENTIAL_OBJECTS: { code: ResidentialObject; name: string }[] = [
+  { code: 'TKY', name: 'ЖК «Tokyo»' },
+  { code: 'EST', name: 'ЖК "Эсентай"' },
+  { code: 'TKC', name: 'ЖК "Токио Сити"' },
+  { code: 'SEL', name: 'БЦ "Сеул"' },
+  { code: 'HYT', name: 'ЖК "Хаят"' },
+  { code: 'URP', name: 'ЖК "Урпак"' },
+  { code: 'WLT', name: 'ЖК "Вилтон парк"' },
+  { code: 'LND', name: 'ЖК "Лондон"' },
+  { code: 'S_УЧ', name: 'Соц проект: садик "Үмүт чырагы"' },
+];
+
+export const FEEDBACK_TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bgColor: string }> = {
+  remark: { label: 'Замечание', color: 'hsl(0 72% 51%)', bgColor: 'hsl(0 72% 96%)' },
+  suggestion: { label: 'Предложение', color: 'hsl(217 91% 60%)', bgColor: 'hsl(217 91% 96%)' },
+  safety: { label: 'Безопасность', color: 'hsl(38 92% 50%)', bgColor: 'hsl(38 92% 96%)' },
+  gratitude: { label: 'Благодарность', color: 'hsl(142 71% 45%)', bgColor: 'hsl(142 71% 96%)' },
+};
 
 export interface Feedback {
   id: string;
@@ -23,12 +43,14 @@ export interface Feedback {
   isAnonymous: boolean;
   contact: string;
   message: string;
-  urgency: Urgency;
   department: Department;
   status: FeedbackStatus;
   subStatus?: SubStatus;
+  objectCode?: ResidentialObject;
   bitrixTaskId?: string;
+  attachmentUrl?: string;
   attachmentName?: string;
+  assignedTo?: string;
   aiAnalysis?: AIAnalysis;
   comments: Comment[];
 }
@@ -50,6 +72,27 @@ export interface Comment {
 export interface AdminUser {
   department: Department;
   name: string;
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  email?: string;
+  department: string;
+  position?: string;
+  isActive: boolean;
+}
+
+export interface AdminActionLog {
+  id: string;
+  userId?: string;
+  actionType: string;
+  entityType: string;
+  entityId?: string;
+  oldValue?: any;
+  newValue?: any;
+  description?: string;
+  createdAt: string;
 }
 
 export interface AppSettings {
