@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Feedback, FeedbackStatus, Comment, Department } from '@/types/feedback';
+import { Feedback, FeedbackStatus, Comment, Department, SubStatus } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,12 +18,13 @@ import {
   Mail,
   Paperclip,
   MessageSquare,
-  Trash2
+  Trash2,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
 import { updateFeedbackStatus, deleteFeedbackById } from '@/lib/database';
-import { updateStatusInGoogleSheets } from '@/lib/integrations';
+import { updateStatusInGoogleSheets, getSubStatusName } from '@/lib/integrations';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -36,6 +37,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TicketDetailProps {
   ticket: Feedback;
@@ -49,6 +57,17 @@ const statusOptions: { id: FeedbackStatus; label: string; icon: React.ReactNode 
   { id: 'resolved', label: 'Решена', icon: <CheckCircle className="w-4 h-4" /> },
 ];
 
+const subStatusOptions: { id: SubStatus; label: string }[] = [
+  { id: 'working_group', label: 'Рабочая группа' },
+  { id: 'management_meeting', label: 'Собрание руководства' },
+  { id: 'foremen_tech_meeting', label: 'Собрание прорабов с тех отделом (пн 8:00)' },
+  { id: 'managers_meeting', label: 'Собрание руководителей (пн 10:00)' },
+  { id: 'top_management_meeting', label: 'Собрание топ менеджмента (пн 14:00)' },
+  { id: 'site_inspection', label: 'Обходы по объектам' },
+  { id: 'project_committee', label: 'Собрание проектного комитета (1/в 2 недели)' },
+  { id: 'production_meeting', label: 'Производственные собрания' },
+];
+
 export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -57,6 +76,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [newComment, setNewComment] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState(ticket.aiAnalysis);
   const [currentStatus, setCurrentStatus] = useState(ticket.status);
+  const [currentSubStatus, setCurrentSubStatus] = useState<SubStatus>(ticket.subStatus || null);
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -78,9 +98,13 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   };
 
   const handleStatusChange = async (status: FeedbackStatus) => {
-    const success = await updateFeedbackStatus(ticket.id, status);
+    const newSubStatus = status === 'in_progress' ? currentSubStatus : null;
+    const success = await updateFeedbackStatus(ticket.id, status, newSubStatus);
     if (success) {
       setCurrentStatus(status);
+      if (status !== 'in_progress') {
+        setCurrentSubStatus(null);
+      }
       onUpdate();
       toast.success('Статус обновлён');
       
@@ -91,6 +115,18 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       }
     } else {
       toast.error('Ошибка обновления статуса');
+    }
+  };
+
+  const handleSubStatusChange = async (subStatus: SubStatus) => {
+    const success = await updateFeedbackStatus(ticket.id, 'in_progress', subStatus);
+    if (success) {
+      setCurrentStatus('in_progress');
+      setCurrentSubStatus(subStatus);
+      onUpdate();
+      toast.success('Подстатус обновлён');
+    } else {
+      toast.error('Ошибка обновления подстатуса');
     }
   };
 
@@ -180,6 +216,11 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                     <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
                       <Zap className="w-3 h-3 mr-1" />
                       Срочно
+                    </Badge>
+                  )}
+                  {ticket.bitrixTaskId && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                      Bitrix #{ticket.bitrixTaskId}
                     </Badge>
                   )}
                 </div>
@@ -311,6 +352,32 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                 </button>
               ))}
             </div>
+
+            {currentStatus === 'in_progress' && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <h4 className="text-sm font-medium mb-3">Статус решения</h4>
+                <Select 
+                  value={currentSubStatus || ''} 
+                  onValueChange={(value) => handleSubStatusChange(value as SubStatus)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Выберите статус решения" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subStatusOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id!}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {currentSubStatus && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {getSubStatusName(currentSubStatus)}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="card-elevated p-6 space-y-3">

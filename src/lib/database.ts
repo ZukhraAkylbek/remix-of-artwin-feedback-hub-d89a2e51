@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Feedback, FeedbackStatus } from '@/types/feedback';
+import { Feedback, FeedbackStatus, SubStatus } from '@/types/feedback';
 
 // Convert database row to Feedback type
 const rowToFeedback = (row: any): Feedback => ({
@@ -14,6 +14,8 @@ const rowToFeedback = (row: any): Feedback => ({
   urgency: row.urgency,
   department: row.department,
   status: row.status,
+  subStatus: row.sub_status || null,
+  bitrixTaskId: row.bitrix_task_id || null,
   aiAnalysis: row.ai_analysis,
   comments: []
 });
@@ -61,14 +63,42 @@ export const addFeedbackToDb = async (feedback: Feedback): Promise<boolean> => {
 };
 
 // Update feedback status
-export const updateFeedbackStatus = async (id: string, status: FeedbackStatus): Promise<boolean> => {
+export const updateFeedbackStatus = async (
+  id: string, 
+  status: FeedbackStatus,
+  subStatus?: SubStatus
+): Promise<boolean> => {
+  const updateData: any = { status };
+  
+  // Clear subStatus if status is not in_progress, otherwise set it
+  if (status === 'in_progress' && subStatus) {
+    updateData.sub_status = subStatus;
+  } else if (status !== 'in_progress') {
+    updateData.sub_status = null;
+  }
+
   const { error } = await supabase
     .from('feedback')
-    .update({ status })
+    .update(updateData)
     .eq('id', id);
 
   if (error) {
     console.error('Error updating feedback:', error);
+    return false;
+  }
+
+  return true;
+};
+
+// Update bitrix task id
+export const updateBitrixTaskId = async (id: string, bitrixTaskId: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ bitrix_task_id: bitrixTaskId })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating bitrix task id:', error);
     return false;
   }
 

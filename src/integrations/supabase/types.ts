@@ -81,6 +81,7 @@ export type Database = {
         Row: {
           ai_analysis: Json | null
           auto_response: string | null
+          bitrix_task_id: string | null
           contact: string | null
           created_at: string
           department: string
@@ -89,6 +90,7 @@ export type Database = {
           message: string
           name: string | null
           status: string
+          sub_status: string | null
           type: string
           urgency: string
           user_role: string
@@ -96,6 +98,7 @@ export type Database = {
         Insert: {
           ai_analysis?: Json | null
           auto_response?: string | null
+          bitrix_task_id?: string | null
           contact?: string | null
           created_at?: string
           department: string
@@ -104,6 +107,7 @@ export type Database = {
           message: string
           name?: string | null
           status?: string
+          sub_status?: string | null
           type: string
           urgency?: string
           user_role: string
@@ -111,6 +115,7 @@ export type Database = {
         Update: {
           ai_analysis?: Json | null
           auto_response?: string | null
+          bitrix_task_id?: string | null
           contact?: string | null
           created_at?: string
           department?: string
@@ -119,6 +124,7 @@ export type Database = {
           message?: string
           name?: string | null
           status?: string
+          sub_status?: string | null
           type?: string
           urgency?: string
           user_role?: string

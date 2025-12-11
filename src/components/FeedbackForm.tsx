@@ -77,11 +77,17 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
     
     if (success) {
       // Also sync to external services
-      await Promise.all([
+      const [telegramResult, sheetsResult, bitrixResult] = await Promise.all([
         sendToTelegram(feedback),
         syncToGoogleSheets(feedback),
         sendToBitrix(feedback),
       ]);
+      
+      // Save bitrix task ID if created
+      if (bitrixResult.success && bitrixResult.taskId) {
+        const { updateBitrixTaskId } = await import('@/lib/database');
+        await updateBitrixTaskId(feedback.id, bitrixResult.taskId);
+      }
       
       toast.success('Ваше обращение успешно отправлено!');
       onSuccess();

@@ -3,6 +3,16 @@ export type FeedbackType = 'complaint' | 'suggestion';
 export type Department = 'management' | 'sales' | 'it' | 'logistics' | 'accounting' | 'warehouse' | 'hr' | 'marketing' | 'design';
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type Urgency = 'normal' | 'urgent';
+export type SubStatus = 
+  | 'working_group'
+  | 'management_meeting'
+  | 'foremen_tech_meeting'
+  | 'managers_meeting'
+  | 'top_management_meeting'
+  | 'site_inspection'
+  | 'project_committee'
+  | 'production_meeting'
+  | null;
 
 export interface Feedback {
   id: string;
@@ -16,6 +26,8 @@ export interface Feedback {
   urgency: Urgency;
   department: Department;
   status: FeedbackStatus;
+  subStatus?: SubStatus;
+  bitrixTaskId?: string;
   attachmentName?: string;
   aiAnalysis?: AIAnalysis;
   comments: Comment[];
