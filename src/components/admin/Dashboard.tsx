@@ -63,8 +63,8 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
             {typeStats.map(({ type, count, config }) => (
               <div key={type} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color }} />
-                  <span>{config.label}</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config?.color || '#888' }} />
+                  <span>{config?.label || type}</span>
                 </div>
                 <span className="font-medium">{count}</span>
               </div>
@@ -80,7 +80,7 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
             <div className="space-y-3">
               {departmentFeedback.slice(0, 5).map((f) => (
                 <div key={f.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: FEEDBACK_TYPE_CONFIG[f.type].color }} />
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: FEEDBACK_TYPE_CONFIG[f.type]?.color || '#888' }} />
                   <p className="text-sm flex-1 truncate">{f.message}</p>
                   <span className="text-xs text-muted-foreground">{new Date(f.createdAt).toLocaleDateString('ru')}</span>
                 </div>
