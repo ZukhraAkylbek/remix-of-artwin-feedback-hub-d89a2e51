@@ -118,10 +118,10 @@ serve(async (req) => {
     }
 
     if (rowIndex === -1) {
-      console.log('Feedback ID not found in sheet:', feedbackId);
+      console.log('Feedback ID not found in sheet (not synced yet):', feedbackId);
       return new Response(
-        JSON.stringify({ success: false, error: 'ID not found in sheet' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, skipped: true, message: 'ID not in sheet yet' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
