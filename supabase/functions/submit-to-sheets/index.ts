@@ -120,6 +120,33 @@ async function getAccessToken(serviceAccountEmail: string, privateKey: string): 
   return tokenData.access_token;
 }
 
+// Get the next empty row in column A
+async function getNextRow(spreadsheetId: string, accessToken: string): Promise<number> {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:A?majorDimension=COLUMNS`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    console.log('Could not get existing data, starting from row 1');
+    return 1;
+  }
+
+  const data = await response.json();
+  
+  // If no values in column A, start from row 1
+  if (!data.values || !data.values[0]) {
+    return 1;
+  }
+  
+  // Return the next row after the last filled one
+  return data.values[0].length + 1;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -148,12 +175,18 @@ serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccountEmail, privateKey);
     console.log('Got access token');
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+    // Get next available row in column A
+    const nextRow = await getNextRow(spreadsheetId, accessToken);
+    console.log('Next row to insert:', nextRow);
+
+    // Use PUT to directly set values at specific range starting from column A
+    const specificRange = `A${nextRow}:J${nextRow}`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(specificRange)}?valueInputOption=RAW`;
     
     console.log('Calling Google Sheets API:', url);
 
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -171,7 +204,7 @@ serve(async (req) => {
     }
 
     const result = await response.json();
-    console.log('Successfully appended to sheet:', result);
+    console.log('Successfully wrote to sheet:', result);
 
     return new Response(
       JSON.stringify({ success: true, result }),
