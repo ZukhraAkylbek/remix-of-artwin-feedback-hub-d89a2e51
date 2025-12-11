@@ -148,7 +148,7 @@ serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccountEmail, privateKey);
     console.log('Got access token');
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
     
     console.log('Calling Google Sheets API:', url);
 
