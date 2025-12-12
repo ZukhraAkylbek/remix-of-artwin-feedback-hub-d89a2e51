@@ -28,7 +28,10 @@ export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState<string>('');
 
-  const departmentFeedback = feedback.filter(f => f.department === department);
+  // Management sees all feedback, other departments see only their own
+  const departmentFeedback = department === 'management' 
+    ? feedback 
+    : feedback.filter(f => f.department === department);
 
   const typeStats = Object.keys(FEEDBACK_TYPE_CONFIG).map(type => ({
     type,
