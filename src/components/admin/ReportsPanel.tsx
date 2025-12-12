@@ -13,6 +13,7 @@ interface ReportsPanelProps {
 const getDepartmentName = (dept: Department): string => {
   const names: Record<Department, string> = {
     management: 'Руководство',
+    reception: 'Reception',
     sales: 'Продажи',
     hr: 'HR',
     marketing: 'Маркетинг',

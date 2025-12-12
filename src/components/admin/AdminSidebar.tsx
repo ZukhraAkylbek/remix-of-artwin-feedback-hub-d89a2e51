@@ -28,6 +28,7 @@ interface AdminSidebarProps {
 
 const departmentIcons: Record<Department, React.ReactNode> = {
   management: <Crown className="w-5 h-5" />,
+  reception: <Users className="w-5 h-5" />,
   sales: <Wallet className="w-5 h-5" />,
   hr: <Users className="w-5 h-5" />,
   marketing: <Megaphone className="w-5 h-5" />,
@@ -38,6 +39,7 @@ const departmentIcons: Record<Department, React.ReactNode> = {
 
 const departmentLabels: Record<Department, string> = {
   management: 'Руководство',
+  reception: 'Reception',
   sales: 'Продажи',
   hr: 'HR',
   marketing: 'Маркетинг',
