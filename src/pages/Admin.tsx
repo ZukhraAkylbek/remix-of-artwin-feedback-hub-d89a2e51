@@ -16,7 +16,7 @@ import { Footer } from '@/components/Footer';
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading, signOut } = useAuth();
+  const { user, isAdmin, department: userDepartment, loading, signOut } = useAuth();
   
   const [department, setDepartment] = useState<Department | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -30,6 +30,13 @@ const Admin = () => {
       navigate('/auth');
     }
   }, [user, isAdmin, loading, navigate]);
+
+  // Auto-select department based on user's assigned department
+  useEffect(() => {
+    if (!loading && isAdmin && userDepartment && !department) {
+      setDepartment(userDepartment);
+    }
+  }, [loading, isAdmin, userDepartment, department]);
 
   const loadFeedback = async () => {
     setIsLoadingData(true);
@@ -68,7 +75,7 @@ const Admin = () => {
     );
   }
 
-  // Show department selector if authenticated but no department selected
+  // Show department selector if authenticated but no department selected (for users without assigned department)
   if (!department) {
     return <DepartmentSelector onSelect={handleSelectDepartment} onLogout={handleLogout} />;
   }

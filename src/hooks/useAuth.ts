@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { Department } from '@/types/feedback';
 
 interface AuthState {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  department: Department | null;
   loading: boolean;
 }
 
@@ -14,6 +16,7 @@ export function useAuth() {
     user: null,
     session: null,
     isAdmin: false,
+    department: null,
     loading: true,
   });
 
@@ -27,13 +30,13 @@ export function useAuth() {
           user: session?.user ?? null,
         }));
 
-        // Defer admin role check to avoid deadlock
+        // Defer admin role and department check to avoid deadlock
         if (session?.user) {
           setTimeout(() => {
-            checkAdminRole(session.user.id);
+            checkAdminRoleAndDepartment(session.user.id);
           }, 0);
         } else {
-          setAuthState(prev => ({ ...prev, isAdmin: false, loading: false }));
+          setAuthState(prev => ({ ...prev, isAdmin: false, department: null, loading: false }));
         }
       }
     );
@@ -47,7 +50,7 @@ export function useAuth() {
       }));
 
       if (session?.user) {
-        checkAdminRole(session.user.id);
+        checkAdminRoleAndDepartment(session.user.id);
       } else {
         setAuthState(prev => ({ ...prev, loading: false }));
       }
@@ -56,17 +59,26 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminRole = async (userId: string) => {
-    const { data, error } = await supabase
+  const checkAdminRoleAndDepartment = async (userId: string) => {
+    // Check admin role
+    const { data: roleData, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
       .eq('role', 'admin')
-      .single();
+      .maybeSingle();
+
+    // Check department
+    const { data: deptData } = await supabase
+      .from('user_departments')
+      .select('department')
+      .eq('user_id', userId)
+      .maybeSingle();
 
     setAuthState(prev => ({
       ...prev,
-      isAdmin: !error && data !== null,
+      isAdmin: !roleError && roleData !== null,
+      department: (deptData?.department as Department) || null,
       loading: false,
     }));
   };
@@ -77,6 +89,7 @@ export function useAuth() {
       user: null,
       session: null,
       isAdmin: false,
+      department: null,
       loading: false,
     });
   };
