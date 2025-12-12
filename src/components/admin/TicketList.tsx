@@ -32,7 +32,10 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [isSyncingBitrix, setIsSyncingBitrix] = useState(false);
   
-  const departmentFeedback = feedback.filter(f => f.department === department);
+  // Management sees all feedback, other departments see only their own
+  const departmentFeedback = department === 'management' 
+    ? feedback 
+    : feedback.filter(f => f.department === department);
   const filteredFeedback = statusFilter === 'all' ? departmentFeedback : departmentFeedback.filter(f => f.status === statusFilter);
 
   const handleSyncFromSheets = async () => {

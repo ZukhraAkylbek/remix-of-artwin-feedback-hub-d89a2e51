@@ -13,7 +13,10 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ feedback, department }: DashboardProps) => {
-  const departmentFeedback = feedback.filter(f => f.department === department);
+  // Management sees all feedback, other departments see only their own
+  const departmentFeedback = department === 'management' 
+    ? feedback 
+    : feedback.filter(f => f.department === department);
   
   const stats = {
     total: departmentFeedback.length,
