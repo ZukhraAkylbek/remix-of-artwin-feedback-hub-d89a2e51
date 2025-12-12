@@ -9,7 +9,6 @@ import {
   Users,
   Wallet,
   Megaphone,
-  Crown,
   ArrowLeftRight,
   History,
   Heart,
@@ -27,7 +26,7 @@ interface AdminSidebarProps {
 }
 
 const departmentIcons: Record<Department, React.ReactNode> = {
-  management: <Crown className="w-5 h-5" />,
+  management: <LayoutDashboard className="w-5 h-5" />,
   reception: <Users className="w-5 h-5" />,
   sales: <Wallet className="w-5 h-5" />,
   hr: <Users className="w-5 h-5" />,

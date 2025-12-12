@@ -1,6 +1,6 @@
 import { Department } from '@/types/feedback';
 import { Logo } from '@/components/Logo';
-import { Users, Wallet, Megaphone, Crown, LogOut, Heart, HardHat, MoreHorizontal } from 'lucide-react';
+import { Users, Wallet, Megaphone, Briefcase, LogOut, Heart, HardHat, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -10,7 +10,7 @@ interface DepartmentSelectorProps {
 }
 
 const departments: { id: Department; label: string; icon: React.ReactNode }[] = [
-  { id: 'management', label: 'Руководство', icon: <Crown className="w-6 h-6" /> },
+  { id: 'management', label: 'Руководство', icon: <Briefcase className="w-6 h-6" /> },
   { id: 'reception', label: 'Reception', icon: <Users className="w-6 h-6" /> },
   { id: 'sales', label: 'Отдел продаж', icon: <Wallet className="w-6 h-6" /> },
   { id: 'hr', label: 'HR (сотрудники, условия труда)', icon: <Users className="w-6 h-6" /> },
