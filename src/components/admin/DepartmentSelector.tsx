@@ -1,8 +1,14 @@
+import { useState } from 'react';
 import { Department } from '@/types/feedback';
 import { Logo } from '@/components/Logo';
-import { Users, Wallet, Megaphone, Briefcase, LogOut, Heart, HardHat, MoreHorizontal } from 'lucide-react';
+import { Users, Wallet, Megaphone, Briefcase, LogOut, Heart, HardHat, MoreHorizontal, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface DepartmentSelectorProps {
   onSelect: (department: Department) => void;
@@ -20,7 +26,96 @@ const departments: { id: Department; label: string; icon: React.ReactNode }[] = 
   { id: 'other', label: 'Безопасность и экология (ОТиТБ)', icon: <MoreHorizontal className="w-6 h-6" /> },
 ];
 
+// Department credentials mapping
+const departmentCredentials: Record<Department, { email: string }> = {
+  management: { email: 'management@artwin.kg' },
+  reception: { email: 'reception@artwin.kg' },
+  sales: { email: 'sales@artwin.kg' },
+  hr: { email: 'hr@artwin.kg' },
+  marketing: { email: 'marketing@artwin.kg' },
+  favorites_ssl: { email: 'clients@artwin.kg' },
+  construction_tech: { email: 'tech@artwin.kg' },
+  other: { email: 'safety@artwin.kg' },
+};
+
 export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorProps) => {
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleDepartmentClick = (dept: Department) => {
+    setSelectedDept(dept);
+    setEmail('');
+    setPassword('');
+    setIsModalOpen(true);
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedDept || !email || !password) {
+      toast.error('Введите email и пароль');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Sign out current user first
+      await supabase.auth.signOut();
+
+      // Try to sign in with provided credentials
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error('Неверный логин или пароль');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if the email matches the department's expected email
+      const expectedEmail = departmentCredentials[selectedDept].email;
+      if (data.user?.email !== expectedEmail) {
+        toast.error('Этот логин не имеет доступа к выбранному департаменту');
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user has admin role
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (roleError || !roleData) {
+        toast.error('У вас нет прав администратора');
+        await supabase.auth.signOut();
+        setIsLoading(false);
+        return;
+      }
+
+      // Success - proceed to department
+      setIsModalOpen(false);
+      toast.success('Вход выполнен успешно');
+      onSelect(selectedDept);
+
+    } catch (err) {
+      toast.error('Ошибка входа');
+    }
+
+    setIsLoading(false);
+  };
+
+  const selectedDeptInfo = selectedDept ? departments.find(d => d.id === selectedDept) : null;
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg space-y-8 animate-slide-up">
@@ -34,7 +129,7 @@ export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorPro
           {departments.map((dept) => (
             <button
               key={dept.id}
-              onClick={() => onSelect(dept.id)}
+              onClick={() => handleDepartmentClick(dept.id)}
               className={cn(
                 'card-elevated p-6 text-center transition-all duration-300',
                 'hover:border-primary/30 hover:shadow-floating'
@@ -55,6 +150,70 @@ export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorPro
           </Button>
         </div>
       </div>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {selectedDeptInfo && (
+                <>
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                    {selectedDeptInfo.icon}
+                  </div>
+                  {selectedDeptInfo.label}
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleLogin} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@artwin.kg"
+                autoComplete="email"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Пароль</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Введите пароль"
+                autoComplete="current-password"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1"
+              >
+                Отмена
+              </Button>
+              <Button type="submit" disabled={isLoading} className="flex-1">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Вход...
+                  </>
+                ) : (
+                  'Войти'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
