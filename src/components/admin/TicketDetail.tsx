@@ -403,20 +403,6 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
               </SelectContent>
             </Select>
           </div>
-
-          <div className="card-elevated p-6">
-            <h3 className="font-semibold mb-4">Действия</h3>
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full gap-2" onClick={handleAnalyze} disabled={isAnalyzing}>
-                {isAnalyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {isAnalyzing ? 'Анализ...' : 'Анализировать'}
-              </Button>
-              <Button variant="outline" className="w-full gap-2" onClick={handleGenerateResponse} disabled={isGenerating}>
-                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {isGenerating ? 'Генерация...' : 'Сгенерировать ответ'}
-              </Button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
