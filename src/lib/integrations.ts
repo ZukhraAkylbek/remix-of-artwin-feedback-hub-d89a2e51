@@ -194,7 +194,7 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
     const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
       body: {
         spreadsheetId,
-        range: 'A:L',
+        range: 'A:M',
         values: [[
           feedback.id,
           feedback.createdAt,
@@ -207,7 +207,8 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
           getDepartmentName(feedback.department),
           getStatusName(feedback.status),
           feedback.subStatus || '',
-          feedback.attachmentUrl || ''
+          feedback.attachmentUrl || '',
+          feedback.deadline || ''
         ]],
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
         privateKey: deptSettings.googlePrivateKey
