@@ -9,6 +9,8 @@ import { TicketList } from '@/components/admin/TicketList';
 import { TicketDetail } from '@/components/admin/TicketDetail';
 import { SettingsPanel } from '@/components/admin/SettingsPanel';
 import { ReportsPanel } from '@/components/admin/ReportsPanel';
+import { EmployeesPanel } from '@/components/admin/EmployeesPanel';
+import { HistoryPanel } from '@/components/admin/HistoryPanel';
 import { DepartmentSelector } from '@/components/admin/DepartmentSelector';
 import { Footer } from '@/components/Footer';
 
@@ -109,6 +111,14 @@ const Admin = () => {
 
           {activeTab === 'reports' && (
             <ReportsPanel feedback={feedback} department={department} />
+          )}
+
+          {activeTab === 'employees' && (
+            <EmployeesPanel department={department} />
+          )}
+
+          {activeTab === 'history' && (
+            <HistoryPanel />
           )}
 
           {activeTab === 'settings' && (
