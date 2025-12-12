@@ -7,16 +7,14 @@ import {
   FileText, 
   LogOut,
   Users,
-  Building2,
   Wallet,
-  Truck,
-  Monitor,
-  Package,
-  PenTool,
   Megaphone,
   Crown,
   ArrowLeftRight,
-  History
+  History,
+  Heart,
+  HardHat,
+  MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,25 +29,21 @@ interface AdminSidebarProps {
 const departmentIcons: Record<Department, React.ReactNode> = {
   management: <Crown className="w-5 h-5" />,
   sales: <Wallet className="w-5 h-5" />,
-  it: <Monitor className="w-5 h-5" />,
-  logistics: <Truck className="w-5 h-5" />,
-  accounting: <Building2 className="w-5 h-5" />,
-  warehouse: <Package className="w-5 h-5" />,
   hr: <Users className="w-5 h-5" />,
   marketing: <Megaphone className="w-5 h-5" />,
-  design: <PenTool className="w-5 h-5" />,
+  favorites_ssl: <Heart className="w-5 h-5" />,
+  construction_tech: <HardHat className="w-5 h-5" />,
+  other: <MoreHorizontal className="w-5 h-5" />,
 };
 
 const departmentLabels: Record<Department, string> = {
   management: 'Руководство',
   sales: 'Продажи',
-  it: 'IT',
-  logistics: 'Логистика',
-  accounting: 'Бухгалтерия',
-  warehouse: 'Склад',
   hr: 'HR',
   marketing: 'Маркетинг',
-  design: 'Дизайн',
+  favorites_ssl: 'Любимочки - ССЛ',
+  construction_tech: 'Стройка - Техотдел',
+  other: 'Прочее',
 };
 
 const menuItems = [

@@ -14,13 +14,11 @@ const getDepartmentName = (dept: Department): string => {
   const names: Record<Department, string> = {
     management: 'Руководство',
     sales: 'Продажи',
-    it: 'IT',
-    logistics: 'Логистика',
-    accounting: 'Бухгалтерия',
-    warehouse: 'Склад',
     hr: 'HR',
     marketing: 'Маркетинг',
-    design: 'Дизайн',
+    favorites_ssl: 'Любимочки - ССЛ',
+    construction_tech: 'Стройка - Техотдел',
+    other: 'Прочее',
   };
   return names[dept];
 };

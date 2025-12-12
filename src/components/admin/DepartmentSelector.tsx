@@ -1,6 +1,6 @@
 import { Department } from '@/types/feedback';
 import { Logo } from '@/components/Logo';
-import { Users, Building2, Wallet, Truck, Monitor, Package, PenTool, Megaphone, Crown, LogOut } from 'lucide-react';
+import { Users, Wallet, Megaphone, Crown, LogOut, Heart, HardHat, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -12,13 +12,11 @@ interface DepartmentSelectorProps {
 const departments: { id: Department; label: string; icon: React.ReactNode }[] = [
   { id: 'management', label: 'Руководство', icon: <Crown className="w-6 h-6" /> },
   { id: 'sales', label: 'Продажи', icon: <Wallet className="w-6 h-6" /> },
-  { id: 'it', label: 'IT', icon: <Monitor className="w-6 h-6" /> },
-  { id: 'logistics', label: 'Логистика', icon: <Truck className="w-6 h-6" /> },
-  { id: 'accounting', label: 'Бухгалтерия', icon: <Building2 className="w-6 h-6" /> },
-  { id: 'warehouse', label: 'Склад', icon: <Package className="w-6 h-6" /> },
   { id: 'hr', label: 'HR', icon: <Users className="w-6 h-6" /> },
   { id: 'marketing', label: 'Маркетинг', icon: <Megaphone className="w-6 h-6" /> },
-  { id: 'design', label: 'Дизайн', icon: <PenTool className="w-6 h-6" /> },
+  { id: 'favorites_ssl', label: 'Любимочки - ССЛ', icon: <Heart className="w-6 h-6" /> },
+  { id: 'construction_tech', label: 'Стройка - Техотдел', icon: <HardHat className="w-6 h-6" /> },
+  { id: 'other', label: 'Прочее', icon: <MoreHorizontal className="w-6 h-6" /> },
 ];
 
 export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorProps) => {

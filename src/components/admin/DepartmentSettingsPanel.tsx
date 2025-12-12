@@ -58,7 +58,7 @@ export const DepartmentSettingsPanel = () => {
     );
   }
 
-  const departments: Department[] = ['management', 'sales', 'it', 'logistics', 'accounting', 'warehouse', 'hr', 'marketing', 'design'];
+  const departments: Department[] = ['management', 'sales', 'hr', 'marketing', 'favorites_ssl', 'construction_tech', 'other'];
 
   return (
     <div className="space-y-6">
