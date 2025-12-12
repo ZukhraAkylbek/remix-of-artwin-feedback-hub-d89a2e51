@@ -232,7 +232,7 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
         ) : (
           <>
             <Send className="w-5 h-5" />
-            {t('submit')} {typeConfig.label.toLowerCase()}
+            {t('submit')} {t(type).toLowerCase()}
           </>
         )}
       </Button>

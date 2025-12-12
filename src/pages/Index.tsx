@@ -81,7 +81,7 @@ const Index = () => {
             </button>
             <div className="text-center space-y-2 p-6 rounded-2xl" style={{ backgroundColor: FEEDBACK_TYPE_CONFIG[selectedType].bgColor }}>
               <h2 className="text-2xl md:text-3xl font-semibold" style={{ color: FEEDBACK_TYPE_CONFIG[selectedType].color }}>
-                {FEEDBACK_TYPE_CONFIG[selectedType].label}
+                {t(selectedType)}
               </h2>
             </div>
             <FeedbackForm type={selectedType} userRole={selectedRole} onSuccess={handleSuccess} />
