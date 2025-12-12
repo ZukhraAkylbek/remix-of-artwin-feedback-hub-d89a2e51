@@ -43,7 +43,7 @@ const departmentLabels: Record<Department, string> = {
   sales: 'Продажи',
   hr: 'HR',
   marketing: 'Маркетинг',
-  favorites_ssl: 'Любимочки - ССЛ',
+  favorites_ssl: 'Любимчики - ССЛ',
   construction_tech: 'Стройка - Техотдел',
   other: 'Прочее',
 };
@@ -318,7 +318,7 @@ const departmentLabelsForRow: Record<string, string> = {
   sales: 'Продажи',
   hr: 'HR',
   marketing: 'Маркетинг',
-  favorites_ssl: 'Любимочки - ССЛ',
+  favorites_ssl: 'Любимчики - ССЛ',
   construction_tech: 'Стройка - Техотдел',
   other: 'Прочее',
 };
