@@ -61,6 +61,7 @@ const translations = {
     errorSubmit: 'Ошибка при отправке. Попробуйте снова.',
     successSubmit: 'Ваше обращение успешно отправлено!',
     // Residential objects
+    object_OFC_ART: 'Офис Артвин',
     object_TKY: 'ЖК «Tokyo»',
     object_EST: 'ЖК "Эсентай"',
     object_TKC: 'ЖК "Токио Сити"',
@@ -121,6 +122,7 @@ const translations = {
     errorSubmit: 'Жөнөтүүдө ката. Кайра аракет кылыңыз.',
     successSubmit: 'Кайрылууңуз ийгиликтүү жөнөтүлдү!',
     // Residential objects
+    object_OFC_ART: 'Артвин офиси',
     object_TKY: 'ТЖК «Токио»',
     object_EST: 'ТЖК "Эсентай"',
     object_TKC: 'ТЖК "Токио Сити"',
@@ -181,6 +183,7 @@ const translations = {
     errorSubmit: '提交失败。请重试。',
     successSubmit: '您的反馈已成功提交！',
     // Residential objects
+    object_OFC_ART: 'Artwin办公室',
     object_TKY: '«东京»住宅区',
     object_EST: '"Esentai"住宅区',
     object_TKC: '"东京城"住宅区',
@@ -241,6 +244,7 @@ const translations = {
     errorSubmit: 'Error submitting. Please try again.',
     successSubmit: 'Your feedback was successfully submitted!',
     // Residential objects
+    object_OFC_ART: 'Artwin Office',
     object_TKY: '«Tokyo» residence',
     object_EST: '"Esentai" residence',
     object_TKC: '"Tokyo City" residence',
