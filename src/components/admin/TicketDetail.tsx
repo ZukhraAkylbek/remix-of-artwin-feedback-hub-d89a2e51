@@ -23,12 +23,22 @@ import {
   Shield,
   Heart,
   ExternalLink,
-  Building
+  Building,
+  CalendarClock,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting } from '@/lib/database';
 import { updateStatusInGoogleSheets } from '@/lib/integrations';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -92,6 +102,9 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assignedEmployee, setAssignedEmployee] = useState<string | undefined>(ticket.assignedTo);
+  const [deadline, setDeadline] = useState<Date | undefined>(ticket.deadline ? new Date(ticket.deadline) : undefined);
+  const [deadlineEnabled, setDeadlineEnabled] = useState(false);
+  const [isDeadlineOpen, setIsDeadlineOpen] = useState(false);
 
   const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
   const objectInfo = ticket.objectCode ? RESIDENTIAL_OBJECTS.find(o => o.code === ticket.objectCode) : null;
@@ -99,7 +112,13 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   useEffect(() => {
     loadSubStatuses();
     loadEmployees();
+    loadDeadlineSetting();
   }, [ticket.department]);
+
+  const loadDeadlineSetting = async () => {
+    const enabled = await getAppSetting('deadline_enabled');
+    setDeadlineEnabled(enabled === true);
+  };
 
   const loadSubStatuses = async () => {
     const statuses = await fetchSubStatuses(ticket.department);
@@ -181,6 +200,20 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       setAssignedEmployee(actualId || undefined);
       toast.success('Ответственный назначен');
       onUpdate();
+    }
+  };
+
+  const handleDeadlineChange = async (date: Date | undefined) => {
+    setDeadline(date);
+    setIsDeadlineOpen(false);
+    const deadlineStr = date ? date.toISOString() : null;
+    const success = await updateFeedbackDeadline(ticket.id, deadlineStr);
+    if (success) {
+      await logAdminAction('set_deadline', 'feedback', ticket.id, { deadline: ticket.deadline }, { deadline: deadlineStr });
+      toast.success(date ? 'Дедлайн установлен' : 'Дедлайн снят');
+      onUpdate();
+    } else {
+      toast.error('Ошибка сохранения дедлайна');
     }
   };
 
@@ -403,6 +436,56 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
               </SelectContent>
             </Select>
           </div>
+
+          {deadlineEnabled && (
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <CalendarClock className="w-5 h-5" />
+                Дедлайн
+              </h3>
+              <Popover open={isDeadlineOpen} onOpenChange={setIsDeadlineOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !deadline && "text-muted-foreground",
+                      deadline && new Date() > deadline && "border-destructive text-destructive"
+                    )}
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4" />
+                    {deadline ? format(deadline, 'PPP', { locale: ru }) : <span>Установить дедлайн</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-background" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={deadline}
+                    onSelect={handleDeadlineChange}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              {deadline && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDeadlineChange(undefined)}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Снять дедлайн
+                </Button>
+              )}
+              {deadline && new Date() > deadline && (
+                <p className="text-sm text-destructive mt-2 flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  Дедлайн просрочен
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { clearAllFeedback, getFeedbackCount } from '@/lib/database';
+import { clearAllFeedback, getFeedbackCount, getAppSetting, setAppSetting } from '@/lib/database';
 import { exportToCSV } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Download, 
   Database,
   Cloud,
   HardDrive,
   Trash2,
-  Loader2
+  Loader2,
+  CalendarClock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -29,15 +32,31 @@ export const SettingsPanel = () => {
   const [feedbackCount, setFeedbackCount] = useState(0);
   const [isClearing, setIsClearing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [deadlineEnabled, setDeadlineEnabled] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       const count = await getFeedbackCount();
       setFeedbackCount(count);
+      
+      const deadlineSetting = await getAppSetting('deadline_enabled');
+      setDeadlineEnabled(deadlineSetting === true);
+      
       setIsLoading(false);
     };
     loadData();
   }, []);
+
+  const handleDeadlineToggle = async (enabled: boolean) => {
+    setDeadlineEnabled(enabled);
+    const success = await setAppSetting('deadline_enabled', enabled);
+    if (success) {
+      toast.success(enabled ? 'Дедлайны включены' : 'Дедлайны отключены');
+    } else {
+      setDeadlineEnabled(!enabled);
+      toast.error('Ошибка сохранения настройки');
+    }
+  };
 
   const handleExportCSV = async () => {
     const csv = await exportToCSV();
@@ -133,6 +152,39 @@ export const SettingsPanel = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        </div>
+      </div>
+
+      <div className="card-elevated p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <CalendarClock className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold">Дедлайны</h3>
+            <p className="text-sm text-muted-foreground">
+              Установка сроков выполнения для заявок
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+          <div className="flex items-center gap-3">
+            <CalendarClock className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <Label htmlFor="deadline-toggle" className="font-medium cursor-pointer">
+                Включить дедлайны
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Позволяет устанавливать сроки выполнения для каждой заявки
+              </p>
+            </div>
+          </div>
+          <Switch
+            id="deadline-toggle"
+            checked={deadlineEnabled}
+            onCheckedChange={handleDeadlineToggle}
+          />
         </div>
       </div>
 

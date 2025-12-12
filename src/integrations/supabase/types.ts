@@ -155,6 +155,7 @@ export type Database = {
           bitrix_task_id: string | null
           contact: string | null
           created_at: string
+          deadline: string | null
           department: string
           id: string
           is_anonymous: boolean
@@ -175,6 +176,7 @@ export type Database = {
           bitrix_task_id?: string | null
           contact?: string | null
           created_at?: string
+          deadline?: string | null
           department: string
           id?: string
           is_anonymous?: boolean
@@ -195,6 +197,7 @@ export type Database = {
           bitrix_task_id?: string | null
           contact?: string | null
           created_at?: string
+          deadline?: string | null
           department?: string
           id?: string
           is_anonymous?: boolean

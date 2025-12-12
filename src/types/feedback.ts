@@ -51,6 +51,7 @@ export interface Feedback {
   attachmentUrl?: string;
   attachmentName?: string;
   assignedTo?: string;
+  deadline?: string;
   aiAnalysis?: AIAnalysis;
   comments: Comment[];
 }
