@@ -115,15 +115,13 @@ export const saveDepartmentSettings = async (settings: DepartmentSettings): Prom
 
 export const getDepartmentName = (dept: string): string => {
   const names: Record<string, string> = {
-    management: 'Руководство',
-    sales: 'Продажи',
-    it: 'IT',
-    logistics: 'Логистика',
-    accounting: 'Бухгалтерия',
-    warehouse: 'Склад',
-    hr: 'HR',
+    management: 'Reception',
+    sales: 'Отдел продаж',
+    hr: 'HR (сотрудники, условия труда)',
     marketing: 'Маркетинг',
-    design: 'Дизайн',
+    favorites_ssl: 'ССЛ (Клиенты/Любимчики)',
+    construction_tech: 'Строительство (ТехОтдел)',
+    other: 'Безопасность и экология (ОТиТБ)',
   };
   return names[dept] || dept;
 };
