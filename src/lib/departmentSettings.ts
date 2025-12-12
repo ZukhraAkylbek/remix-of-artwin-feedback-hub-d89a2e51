@@ -33,7 +33,7 @@ export const getDepartmentSettings = async (department: Department): Promise<Dep
 };
 
 export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> => {
-  const allDepartments: Department[] = ['management', 'sales', 'it', 'logistics', 'accounting', 'warehouse', 'hr', 'marketing', 'design'];
+  const allDepartments: Department[] = ['management', 'sales', 'hr', 'marketing', 'favorites_ssl', 'construction_tech', 'other'];
   
   try {
     const { data, error } = await supabase

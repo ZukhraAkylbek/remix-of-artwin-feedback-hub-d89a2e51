@@ -1,6 +1,6 @@
 export type UserRole = 'employee' | 'client' | 'contractor' | 'resident';
 export type FeedbackType = 'remark' | 'suggestion' | 'safety' | 'gratitude';
-export type Department = 'management' | 'sales' | 'it' | 'logistics' | 'accounting' | 'warehouse' | 'hr' | 'marketing' | 'design';
+export type Department = 'management' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other';
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type SubStatus = string | null;
 

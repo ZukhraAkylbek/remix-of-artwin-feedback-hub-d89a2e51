@@ -20,16 +20,14 @@ interface FeedbackFormProps {
   onSuccess: () => void;
 }
 
-const departmentOptions: { value: Department; labelKey: 'management' | 'sales' | 'it' | 'logistics' | 'accounting' | 'warehouse' | 'hr' | 'marketing' | 'design' }[] = [
+const departmentOptions: { value: Department; labelKey: 'management' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other' }[] = [
   { value: 'management', labelKey: 'management' },
   { value: 'sales', labelKey: 'sales' },
-  { value: 'it', labelKey: 'it' },
-  { value: 'logistics', labelKey: 'logistics' },
-  { value: 'accounting', labelKey: 'accounting' },
-  { value: 'warehouse', labelKey: 'warehouse' },
   { value: 'hr', labelKey: 'hr' },
   { value: 'marketing', labelKey: 'marketing' },
-  { value: 'design', labelKey: 'design' },
+  { value: 'favorites_ssl', labelKey: 'favorites_ssl' },
+  { value: 'construction_tech', labelKey: 'construction_tech' },
+  { value: 'other', labelKey: 'other' },
 ];
 
 export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) => {

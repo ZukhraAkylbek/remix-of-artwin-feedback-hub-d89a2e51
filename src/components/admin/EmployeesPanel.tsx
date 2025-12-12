@@ -41,13 +41,11 @@ interface EmployeesPanelProps {
 const departmentLabels: Record<Department, string> = {
   management: 'Руководство',
   sales: 'Продажи',
-  it: 'IT',
-  logistics: 'Логистика',
-  accounting: 'Бухгалтерия',
-  warehouse: 'Склад',
   hr: 'HR',
   marketing: 'Маркетинг',
-  design: 'Дизайн',
+  favorites_ssl: 'Любимочки - ССЛ',
+  construction_tech: 'Стройка - Техотдел',
+  other: 'Прочее',
 };
 
 export const EmployeesPanel = ({ department }: EmployeesPanelProps) => {
@@ -318,13 +316,11 @@ interface EmployeeRowProps {
 const departmentLabelsForRow: Record<string, string> = {
   management: 'Руководство',
   sales: 'Продажи',
-  it: 'IT',
-  logistics: 'Логистика',
-  accounting: 'Бухгалтерия',
-  warehouse: 'Склад',
   hr: 'HR',
   marketing: 'Маркетинг',
-  design: 'Дизайн',
+  favorites_ssl: 'Любимочки - ССЛ',
+  construction_tech: 'Стройка - Техотдел',
+  other: 'Прочее',
 };
 
 const EmployeeRow = ({
