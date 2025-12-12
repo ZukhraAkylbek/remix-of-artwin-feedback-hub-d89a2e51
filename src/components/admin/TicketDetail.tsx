@@ -173,11 +173,12 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   };
 
   const handleAssignEmployee = async (employeeId: string) => {
-    const success = await updateAssignedEmployee(ticket.id, employeeId || null);
+    const actualId = employeeId === '_none' ? null : employeeId;
+    const success = await updateAssignedEmployee(ticket.id, actualId);
     if (success) {
       const emp = employees.find(e => e.id === employeeId);
-      await logAdminAction('assign_employee', 'feedback', ticket.id, null, { employeeId, employeeName: emp?.name });
-      setAssignedEmployee(employeeId);
+      await logAdminAction('assign_employee', 'feedback', ticket.id, null, { employeeId: actualId, employeeName: emp?.name });
+      setAssignedEmployee(actualId || undefined);
       toast.success('Ответственный назначен');
       onUpdate();
     }
@@ -392,10 +393,10 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
 
           <div className="card-elevated p-6">
             <h3 className="font-semibold mb-4">Ответственный</h3>
-            <Select value={assignedEmployee || ''} onValueChange={handleAssignEmployee}>
+            <Select value={assignedEmployee || '_none'} onValueChange={handleAssignEmployee}>
               <SelectTrigger className="w-full bg-background"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger>
               <SelectContent className="bg-background border border-border z-50">
-                <SelectItem value="">Не назначен</SelectItem>
+                <SelectItem value="_none">Не назначен</SelectItem>
                 {employees.map((emp) => (
                   <SelectItem key={emp.id} value={emp.id}>{emp.name}{emp.position ? ` (${emp.position})` : ''}</SelectItem>
                 ))}
