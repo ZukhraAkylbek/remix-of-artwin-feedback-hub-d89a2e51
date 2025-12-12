@@ -5,6 +5,7 @@ export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type SubStatus = string | null;
 
 export type ResidentialObject = 
+  | 'OFC_ART'
   | 'TKY'
   | 'EST'
   | 'TKC'
@@ -16,6 +17,7 @@ export type ResidentialObject =
   | 'S_УЧ';
 
 export const RESIDENTIAL_OBJECTS: { code: ResidentialObject; name: string }[] = [
+  { code: 'OFC_ART', name: 'Офис Артвин' },
   { code: 'TKY', name: 'ЖК «Tokyo»' },
   { code: 'EST', name: 'ЖК "Эсентай"' },
   { code: 'TKC', name: 'ЖК "Токио Сити"' },
