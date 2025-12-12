@@ -18,6 +18,7 @@ const rowToFeedback = (row: any): Feedback => ({
   bitrixTaskId: row.bitrix_task_id || null,
   attachmentUrl: row.attachment_url || undefined,
   assignedTo: row.assigned_to || undefined,
+  deadline: row.deadline || undefined,
   aiAnalysis: row.ai_analysis,
   comments: []
 });
@@ -361,4 +362,48 @@ export const fetchAdminLogs = async (limit = 50): Promise<AdminActionLog[]> => {
     description: row.description || undefined,
     createdAt: row.created_at
   }));
+};
+
+// Update deadline for feedback
+export const updateFeedbackDeadline = async (id: string, deadline: string | null): Promise<boolean> => {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ deadline })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating deadline:', error);
+    return false;
+  }
+
+  return true;
+};
+
+// App settings management
+export const getAppSetting = async (key: string): Promise<any> => {
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching app setting:', error);
+    return null;
+  }
+
+  return data?.value;
+};
+
+export const setAppSetting = async (key: string, value: any): Promise<boolean> => {
+  const { error } = await supabase
+    .from('app_settings')
+    .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+  if (error) {
+    console.error('Error updating app setting:', error);
+    return false;
+  }
+
+  return true;
 };
