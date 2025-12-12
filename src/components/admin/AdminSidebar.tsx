@@ -15,7 +15,8 @@ import {
   PenTool,
   Megaphone,
   Crown,
-  ArrowLeftRight
+  ArrowLeftRight,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -54,7 +55,9 @@ const departmentLabels: Record<Department, string> = {
 const menuItems = [
   { id: 'dashboard', label: 'Дашборд', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'tickets', label: 'Обращения', icon: <MessageSquare className="w-5 h-5" /> },
+  { id: 'employees', label: 'Сотрудники', icon: <Users className="w-5 h-5" /> },
   { id: 'reports', label: 'Отчёты', icon: <FileText className="w-5 h-5" /> },
+  { id: 'history', label: 'История', icon: <History className="w-5 h-5" /> },
   { id: 'settings', label: 'Настройки', icon: <Settings className="w-5 h-5" /> },
 ];
 
