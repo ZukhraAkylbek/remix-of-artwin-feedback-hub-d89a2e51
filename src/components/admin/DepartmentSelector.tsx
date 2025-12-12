@@ -63,10 +63,15 @@ export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorPro
     setIsLoading(true);
 
     try {
-      // Sign out current user first
-      await supabase.auth.signOut();
+      // Check if the email matches the department's expected email BEFORE attempting login
+      const expectedEmail = departmentCredentials[selectedDept].email;
+      if (email.toLowerCase() !== expectedEmail.toLowerCase()) {
+        toast.error('Этот логин не имеет доступа к выбранному департаменту');
+        setIsLoading(false);
+        return;
+      }
 
-      // Try to sign in with provided credentials
+      // Try to sign in with provided credentials (this will replace the current session)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -74,15 +79,6 @@ export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorPro
 
       if (error) {
         toast.error('Неверный логин или пароль');
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if the email matches the department's expected email
-      const expectedEmail = departmentCredentials[selectedDept].email;
-      if (data.user?.email !== expectedEmail) {
-        toast.error('Этот логин не имеет доступа к выбранному департаменту');
-        await supabase.auth.signOut();
         setIsLoading(false);
         return;
       }
