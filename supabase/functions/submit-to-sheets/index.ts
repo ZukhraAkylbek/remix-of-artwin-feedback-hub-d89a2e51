@@ -179,8 +179,8 @@ serve(async (req) => {
     const nextRow = await getNextRow(spreadsheetId, accessToken);
     console.log('Next row to insert:', nextRow);
 
-    // Use PUT to directly set values at specific range starting from column A to K
-    const specificRange = `A${nextRow}:K${nextRow}`;
+    // Use PUT to directly set values at specific range starting from column A to L (12 columns)
+    const specificRange = `A${nextRow}:L${nextRow}`;
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(specificRange)}?valueInputOption=RAW`;
     
     console.log('Calling Google Sheets API:', url);
