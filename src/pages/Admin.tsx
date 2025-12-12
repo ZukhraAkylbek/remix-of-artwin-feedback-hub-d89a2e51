@@ -19,6 +19,7 @@ const Admin = () => {
   const { user, isAdmin, department: userDepartment, loading, signOut } = useAuth();
   
   const [department, setDepartment] = useState<Department | null>(null);
+  const [manualDepartmentSelect, setManualDepartmentSelect] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -31,12 +32,12 @@ const Admin = () => {
     }
   }, [user, isAdmin, loading, navigate]);
 
-  // Auto-select department based on user's assigned department
+  // Auto-select department based on user's assigned department (only if not manually selecting)
   useEffect(() => {
-    if (!loading && isAdmin && userDepartment && !department) {
+    if (!loading && isAdmin && userDepartment && !department && !manualDepartmentSelect) {
       setDepartment(userDepartment);
     }
-  }, [loading, isAdmin, userDepartment, department]);
+  }, [loading, isAdmin, userDepartment, department, manualDepartmentSelect]);
 
   const loadFeedback = async () => {
     setIsLoadingData(true);
@@ -57,6 +58,12 @@ const Admin = () => {
 
   const handleSelectDepartment = (dept: Department) => {
     setDepartment(dept);
+    setManualDepartmentSelect(false);
+  };
+
+  const handleChangeDepartment = () => {
+    setDepartment(null);
+    setManualDepartmentSelect(true);
   };
 
   const handleLogout = async () => {
@@ -90,7 +97,7 @@ const Admin = () => {
           setSelectedTicketId(null);
         }}
         onLogout={handleLogout}
-        onChangeDepartment={() => setDepartment(null)}
+        onChangeDepartment={handleChangeDepartment}
       />
 
       <div className="flex-1 flex flex-col">
