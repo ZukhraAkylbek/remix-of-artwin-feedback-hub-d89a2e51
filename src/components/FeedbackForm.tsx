@@ -139,7 +139,7 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Иван Иванов"
+              placeholder={t('namePlaceholder')}
               className="h-12"
             />
           </div>
