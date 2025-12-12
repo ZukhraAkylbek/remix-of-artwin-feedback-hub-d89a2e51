@@ -10,13 +10,13 @@ interface DepartmentSelectorProps {
 }
 
 const departments: { id: Department; label: string; icon: React.ReactNode }[] = [
-  { id: 'management', label: 'Руководство', icon: <Crown className="w-6 h-6" /> },
-  { id: 'sales', label: 'Продажи', icon: <Wallet className="w-6 h-6" /> },
-  { id: 'hr', label: 'HR', icon: <Users className="w-6 h-6" /> },
+  { id: 'management', label: 'Reception', icon: <Crown className="w-6 h-6" /> },
+  { id: 'sales', label: 'Отдел продаж', icon: <Wallet className="w-6 h-6" /> },
+  { id: 'hr', label: 'HR (сотрудники, условия труда)', icon: <Users className="w-6 h-6" /> },
   { id: 'marketing', label: 'Маркетинг', icon: <Megaphone className="w-6 h-6" /> },
-  { id: 'favorites_ssl', label: 'Любимчики - ССЛ', icon: <Heart className="w-6 h-6" /> },
-  { id: 'construction_tech', label: 'Стройка - Техотдел', icon: <HardHat className="w-6 h-6" /> },
-  { id: 'other', label: 'Прочее', icon: <MoreHorizontal className="w-6 h-6" /> },
+  { id: 'favorites_ssl', label: 'ССЛ (Клиенты/Любимчики)', icon: <Heart className="w-6 h-6" /> },
+  { id: 'construction_tech', label: 'Строительство (ТехОтдел)', icon: <HardHat className="w-6 h-6" /> },
+  { id: 'other', label: 'Безопасность и экология (ОТиТБ)', icon: <MoreHorizontal className="w-6 h-6" /> },
 ];
 
 export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorProps) => {
