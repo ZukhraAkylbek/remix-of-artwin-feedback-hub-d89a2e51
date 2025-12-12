@@ -20,14 +20,14 @@ interface FeedbackFormProps {
   onSuccess: () => void;
 }
 
-const departmentOptions: { value: Department; labelKey: 'management' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other' }[] = [
-  { value: 'management', labelKey: 'management' },
-  { value: 'sales', labelKey: 'sales' },
-  { value: 'hr', labelKey: 'hr' },
-  { value: 'marketing', labelKey: 'marketing' },
-  { value: 'favorites_ssl', labelKey: 'favorites_ssl' },
+const departmentOptions: { value: Department; labelKey: 'management' | 'reception' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other' }[] = [
+  { value: 'reception', labelKey: 'reception' },
   { value: 'construction_tech', labelKey: 'construction_tech' },
   { value: 'other', labelKey: 'other' },
+  { value: 'hr', labelKey: 'hr' },
+  { value: 'sales', labelKey: 'sales' },
+  { value: 'marketing', labelKey: 'marketing' },
+  { value: 'favorites_ssl', labelKey: 'favorites_ssl' },
 ];
 
 export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) => {
@@ -36,7 +36,7 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
-  const [department, setDepartment] = useState<Department>('management');
+  const [department, setDepartment] = useState<Department>('reception');
   const [objectCode, setObjectCode] = useState<ResidentialObject | ''>('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -33,7 +33,7 @@ export const getDepartmentSettings = async (department: Department): Promise<Dep
 };
 
 export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> => {
-  const allDepartments: Department[] = ['management', 'sales', 'hr', 'marketing', 'favorites_ssl', 'construction_tech', 'other'];
+  const allDepartments: Department[] = ['management', 'reception', 'sales', 'hr', 'marketing', 'favorites_ssl', 'construction_tech', 'other'];
   
   try {
     const { data, error } = await supabase
@@ -115,7 +115,8 @@ export const saveDepartmentSettings = async (settings: DepartmentSettings): Prom
 
 export const getDepartmentName = (dept: string): string => {
   const names: Record<string, string> = {
-    management: 'Reception',
+    management: 'Руководство',
+    reception: 'Reception',
     sales: 'Отдел продаж',
     hr: 'HR (сотрудники, условия труда)',
     marketing: 'Маркетинг',

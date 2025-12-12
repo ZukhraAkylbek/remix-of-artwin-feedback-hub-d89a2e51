@@ -40,6 +40,7 @@ interface EmployeesPanelProps {
 
 const departmentLabels: Record<Department, string> = {
   management: 'Руководство',
+  reception: 'Reception',
   sales: 'Продажи',
   hr: 'HR',
   marketing: 'Маркетинг',
