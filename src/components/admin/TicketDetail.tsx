@@ -93,7 +93,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [assignedEmployee, setAssignedEmployee] = useState<string | undefined>(ticket.assignedTo);
 
-  const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type];
+  const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
   const objectInfo = ticket.objectCode ? RESIDENTIAL_OBJECTS.find(o => o.code === ticket.objectCode) : null;
 
   useEffect(() => {
