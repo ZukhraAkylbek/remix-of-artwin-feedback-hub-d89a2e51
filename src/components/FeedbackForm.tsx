@@ -177,7 +177,7 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
             <SelectContent className="bg-background border border-border z-50">
               {RESIDENTIAL_OBJECTS.map((obj) => (
                 <SelectItem key={obj.code} value={obj.code}>
-                  {obj.code} - {t(`object_${obj.code}` as any)}
+                  {t(`object_${obj.code}` as any)}
                 </SelectItem>
               ))}
             </SelectContent>
