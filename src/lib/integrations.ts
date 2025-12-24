@@ -17,10 +17,9 @@ export const sendToTelegram = async (feedback: Feedback): Promise<boolean> => {
   }
 
   const typeConfig = FEEDBACK_TYPE_CONFIG[feedback.type];
-  const typeEmojis: Record<string, string> = {
+const typeEmojis: Record<string, string> = {
     remark: '🔴',
     suggestion: '🔵',
-    safety: '🟡',
     gratitude: '🟢',
   };
   const emoji = typeEmojis[feedback.type] || '⚪';
