@@ -1,33 +1,38 @@
 export type UserRole = 'resident' | 'client' | 'employee' | 'contractor';
-export type FeedbackType = 'remark' | 'suggestion' | 'gratitude';
+export type FeedbackType = 'remark' | 'suggestion' | 'safety' | 'gratitude';
 export type Department = 'management' | 'reception' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other';
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type SubStatus = string | null;
 
 export type ResidentialObject = 
+  | 'HQ'
   | 'TKY'
   | 'EST'
   | 'TKC'
   | 'SEL'
   | 'HYT'
   | 'URP'
+  | 'WLT'
   | 'LND'
   | 'S_УЧ';
 
-export const RESIDENTIAL_OBJECTS: { code: ResidentialObject; name: string }[] = [
-  { code: 'TKY', name: 'ЖК «Tokyo»' },
-  { code: 'EST', name: 'ЖК «Эсентай»' },
-  { code: 'TKC', name: 'ЖК «Токио Сити»' },
-  { code: 'SEL', name: 'БЦ «Сеул»' },
-  { code: 'HYT', name: 'ЖК «Хаят»' },
-  { code: 'URP', name: 'ЖК «Урпак»' },
-  { code: 'LND', name: 'ЖК «Лондон»' },
-  { code: 'S_УЧ', name: 'Соцпроект: садик «Үмүт чырагы»' },
+export const RESIDENTIAL_OBJECTS: { code: ResidentialObject; nameKey: string }[] = [
+  { code: 'HQ', nameKey: 'objectHQ' },
+  { code: 'TKY', nameKey: 'objectTokyo' },
+  { code: 'EST', nameKey: 'objectEsentai' },
+  { code: 'TKC', nameKey: 'objectTokyoCity' },
+  { code: 'SEL', nameKey: 'objectSeoul' },
+  { code: 'HYT', nameKey: 'objectHayat' },
+  { code: 'URP', nameKey: 'objectUrpaqPark' },
+  { code: 'WLT', nameKey: 'objectWiltonPark' },
+  { code: 'LND', nameKey: 'objectLondonSquare' },
+  { code: 'S_УЧ', nameKey: 'objectUmutChyragy' },
 ];
 
 export const FEEDBACK_TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bgColor: string }> = {
   remark: { label: 'Замечание', color: 'hsl(0 72% 51%)', bgColor: 'hsl(0 72% 96%)' },
   suggestion: { label: 'Предложение', color: 'hsl(217 91% 60%)', bgColor: 'hsl(217 91% 96%)' },
+  safety: { label: 'Безопасность', color: 'hsl(38 92% 50%)', bgColor: 'hsl(38 92% 96%)' },
   gratitude: { label: 'Благодарность', color: 'hsl(142 71% 45%)', bgColor: 'hsl(142 71% 96%)' },
 };
 

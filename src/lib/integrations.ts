@@ -20,12 +20,13 @@ export const sendToTelegram = async (feedback: Feedback): Promise<boolean> => {
 const typeEmojis: Record<string, string> = {
     remark: '🔴',
     suggestion: '🔵',
+    safety: '🟠',
     gratitude: '🟢',
   };
   const emoji = typeEmojis[feedback.type] || '⚪';
   
   const objectName = feedback.objectCode 
-    ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.name || feedback.objectCode
+    ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.nameKey || feedback.objectCode
     : 'Не указан';
   
   const message = `
@@ -184,7 +185,7 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
 
   const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
   const objectName = feedback.objectCode 
-    ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.name || feedback.objectCode
+    ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.nameKey || feedback.objectCode
     : '';
 
   try {

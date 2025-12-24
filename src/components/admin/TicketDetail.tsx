@@ -83,6 +83,7 @@ const statusOptions: { id: FeedbackStatus; label: string; icon: React.ReactNode 
 const typeIcons: Record<FeedbackType, React.ReactNode> = {
   remark: <AlertTriangle className="w-6 h-6" />,
   suggestion: <Lightbulb className="w-6 h-6" />,
+  safety: <Shield className="w-6 h-6" />,
   gratitude: <Heart className="w-6 h-6" />,
 };
 
@@ -295,7 +296,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                 {ticket.isAnonymous ? <><UserX className="w-4 h-4" /> Анонимно</> : <><User className="w-4 h-4" /> {ticket.name}</>}
               </span>
               {ticket.contact && <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" />{ticket.contact}</span>}
-              {objectInfo && <span className="flex items-center gap-1.5"><Building className="w-4 h-4" />{objectInfo.name}</span>}
+              {objectInfo && <span className="flex items-center gap-1.5"><Building className="w-4 h-4" />{objectInfo.nameKey}</span>}
               {ticket.attachmentUrl && (
                 <a href={ticket.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-primary hover:underline">
                   <Paperclip className="w-4 h-4" />

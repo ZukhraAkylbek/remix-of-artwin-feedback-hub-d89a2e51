@@ -1,5 +1,5 @@
 import { FeedbackType, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
-import { AlertTriangle, Lightbulb, Heart } from 'lucide-react';
+import { AlertTriangle, Lightbulb, Shield, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 
@@ -11,6 +11,7 @@ interface TypeSelectorProps {
 const typeIcons: Record<FeedbackType, React.ReactNode> = {
   remark: <AlertTriangle className="w-6 h-6" />,
   suggestion: <Lightbulb className="w-6 h-6" />,
+  safety: <Shield className="w-6 h-6" />,
   gratitude: <Heart className="w-6 h-6" />,
 };
 
@@ -29,6 +30,13 @@ const typeColors: Record<FeedbackType, { border: string; ring: string; bg: strin
     iconBg: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
     iconSelected: 'bg-blue-500 text-white',
   },
+  safety: {
+    border: 'border-amber-500/30',
+    ring: 'ring-amber-500/20',
+    bg: 'bg-amber-50 dark:bg-amber-950/20',
+    iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+    iconSelected: 'bg-amber-500 text-white',
+  },
   gratitude: {
     border: 'border-green-500/30',
     ring: 'ring-green-500/20',
@@ -41,9 +49,10 @@ const typeColors: Record<FeedbackType, { border: string; ring: string; bg: strin
 export const TypeSelector = ({ selected, onSelect }: TypeSelectorProps) => {
   const { t } = useI18n();
 
-  const types: { id: FeedbackType; labelKey: 'remark' | 'suggestion' | 'gratitude'; descKey: 'remarkDesc' | 'suggestionDesc' | 'gratitudeDesc' }[] = [
+  const types: { id: FeedbackType; labelKey: 'remark' | 'suggestion' | 'safety' | 'gratitude'; descKey: 'remarkDesc' | 'suggestionDesc' | 'safetyDesc' | 'gratitudeDesc' }[] = [
     { id: 'remark', labelKey: 'remark', descKey: 'remarkDesc' },
     { id: 'suggestion', labelKey: 'suggestion', descKey: 'suggestionDesc' },
+    { id: 'safety', labelKey: 'safety', descKey: 'safetyDesc' },
     { id: 'gratitude', labelKey: 'gratitude', descKey: 'gratitudeDesc' },
   ];
 
