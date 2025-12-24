@@ -83,7 +83,6 @@ const statusOptions: { id: FeedbackStatus; label: string; icon: React.ReactNode 
 const typeIcons: Record<FeedbackType, React.ReactNode> = {
   remark: <AlertTriangle className="w-6 h-6" />,
   suggestion: <Lightbulb className="w-6 h-6" />,
-  safety: <Shield className="w-6 h-6" />,
   gratitude: <Heart className="w-6 h-6" />,
 };
 
