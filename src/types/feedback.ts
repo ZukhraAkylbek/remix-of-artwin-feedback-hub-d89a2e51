@@ -5,28 +5,24 @@ export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type SubStatus = string | null;
 
 export type ResidentialObject = 
-  | 'OFC_ART'
   | 'TKY'
   | 'EST'
   | 'TKC'
   | 'SEL'
   | 'HYT'
   | 'URP'
-  | 'WLT'
   | 'LND'
   | 'S_УЧ';
 
 export const RESIDENTIAL_OBJECTS: { code: ResidentialObject; name: string }[] = [
-  { code: 'OFC_ART', name: 'Офис Артвин' },
   { code: 'TKY', name: 'ЖК «Tokyo»' },
-  { code: 'EST', name: 'ЖК "Эсентай"' },
-  { code: 'TKC', name: 'ЖК "Токио Сити"' },
-  { code: 'SEL', name: 'БЦ "Сеул"' },
-  { code: 'HYT', name: 'ЖК "Хаят"' },
-  { code: 'URP', name: 'ЖК "Урпак"' },
-  { code: 'WLT', name: 'ЖК "Вилтон парк"' },
-  { code: 'LND', name: 'ЖК "Лондон"' },
-  { code: 'S_УЧ', name: 'Соц проект: садик "Үмүт чырагы"' },
+  { code: 'EST', name: 'ЖК «Эсентай»' },
+  { code: 'TKC', name: 'ЖК «Токио Сити»' },
+  { code: 'SEL', name: 'БЦ «Сеул»' },
+  { code: 'HYT', name: 'ЖК «Хаят»' },
+  { code: 'URP', name: 'ЖК «Урпак»' },
+  { code: 'LND', name: 'ЖК «Лондон»' },
+  { code: 'S_УЧ', name: 'Соцпроект: садик «Үмүт чырагы»' },
 ];
 
 export const FEEDBACK_TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bgColor: string }> = {
