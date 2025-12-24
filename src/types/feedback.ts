@@ -1,5 +1,5 @@
-export type UserRole = 'employee' | 'client' | 'contractor' | 'resident';
-export type FeedbackType = 'remark' | 'suggestion' | 'safety' | 'gratitude';
+export type UserRole = 'resident' | 'client' | 'employee' | 'contractor';
+export type FeedbackType = 'remark' | 'suggestion' | 'gratitude';
 export type Department = 'management' | 'reception' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other';
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type SubStatus = string | null;
@@ -28,7 +28,6 @@ export const RESIDENTIAL_OBJECTS: { code: ResidentialObject; name: string }[] = 
 export const FEEDBACK_TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bgColor: string }> = {
   remark: { label: 'Замечание', color: 'hsl(0 72% 51%)', bgColor: 'hsl(0 72% 96%)' },
   suggestion: { label: 'Предложение', color: 'hsl(217 91% 60%)', bgColor: 'hsl(217 91% 96%)' },
-  safety: { label: 'Безопасность', color: 'hsl(38 92% 50%)', bgColor: 'hsl(38 92% 96%)' },
   gratitude: { label: 'Благодарность', color: 'hsl(142 71% 45%)', bgColor: 'hsl(142 71% 96%)' },
 };
 
