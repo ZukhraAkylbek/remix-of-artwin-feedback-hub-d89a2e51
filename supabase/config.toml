@@ -1,16 +1,1 @@
-project_id = "royuzcroobvazlpjkrql"
-
-[functions.send-to-bitrix]
-verify_jwt = false
-
-[functions.sync-bitrix-status]
-verify_jwt = false
-
-[functions.submit-to-sheets]
-verify_jwt = false
-
-[functions.update-sheet-status]
-verify_jwt = false
-
-[functions.sync-from-sheets]
-verify_jwt = false
+project_id = "tyfdbtsfgjjsfhgweezs"

@@ -4,6 +4,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 CREATE EXTENSION IF NOT EXISTS "plpgsql" WITH SCHEMA "pg_catalog";
 CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+BEGIN;
+
 --
 -- PostgreSQL database dump
 --
@@ -75,6 +77,23 @@ $$;
 SET default_table_access_method = heap;
 
 --
+-- Name: admin_action_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.admin_action_logs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    action_type text NOT NULL,
+    entity_type text NOT NULL,
+    entity_id uuid,
+    old_value jsonb,
+    new_value jsonb,
+    description text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: app_settings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -100,6 +119,23 @@ CREATE TABLE public.department_settings (
     telegram_bot_token text,
     telegram_chat_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    bitrix_webhook_url text
+);
+
+
+--
+-- Name: employees; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.employees (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    email text,
+    department text NOT NULL,
+    "position" text,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -121,7 +157,52 @@ CREATE TABLE public.feedback (
     department text NOT NULL,
     status text DEFAULT 'new'::text NOT NULL,
     ai_analysis jsonb,
-    auto_response text
+    auto_response text,
+    sub_status text,
+    bitrix_task_id text,
+    object_code text,
+    attachment_url text,
+    assigned_to uuid,
+    deadline timestamp with time zone
+);
+
+
+--
+-- Name: residential_objects; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.residential_objects (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    code text NOT NULL,
+    name text NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: sub_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sub_statuses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    department text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    is_active boolean DEFAULT true NOT NULL
+);
+
+
+--
+-- Name: user_departments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_departments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    department text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -135,6 +216,14 @@ CREATE TABLE public.user_roles (
     role public.app_role NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+
+--
+-- Name: admin_action_logs admin_action_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_action_logs
+    ADD CONSTRAINT admin_action_logs_pkey PRIMARY KEY (id);
 
 
 --
@@ -162,6 +251,14 @@ ALTER TABLE ONLY public.department_settings
 
 
 --
+-- Name: department_settings department_settings_department_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.department_settings
+    ADD CONSTRAINT department_settings_department_unique UNIQUE (department);
+
+
+--
 -- Name: department_settings department_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -170,11 +267,59 @@ ALTER TABLE ONLY public.department_settings
 
 
 --
+-- Name: employees employees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.employees
+    ADD CONSTRAINT employees_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feedback feedback_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.feedback
     ADD CONSTRAINT feedback_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: residential_objects residential_objects_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.residential_objects
+    ADD CONSTRAINT residential_objects_code_key UNIQUE (code);
+
+
+--
+-- Name: residential_objects residential_objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.residential_objects
+    ADD CONSTRAINT residential_objects_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sub_statuses sub_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sub_statuses
+    ADD CONSTRAINT sub_statuses_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_departments user_departments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_departments
+    ADD CONSTRAINT user_departments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_departments user_departments_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_departments
+    ADD CONSTRAINT user_departments_user_id_key UNIQUE (user_id);
 
 
 --
@@ -194,6 +339,41 @@ ALTER TABLE ONLY public.user_roles
 
 
 --
+-- Name: idx_admin_logs_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_logs_created_at ON public.admin_action_logs USING btree (created_at DESC);
+
+
+--
+-- Name: idx_admin_logs_entity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_admin_logs_entity ON public.admin_action_logs USING btree (entity_type, entity_id);
+
+
+--
+-- Name: idx_feedback_assigned_to; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_feedback_assigned_to ON public.feedback USING btree (assigned_to);
+
+
+--
+-- Name: idx_feedback_bitrix_task_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_feedback_bitrix_task_id ON public.feedback USING btree (bitrix_task_id);
+
+
+--
+-- Name: idx_feedback_object_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_feedback_object_code ON public.feedback USING btree (object_code);
+
+
+--
 -- Name: app_settings update_app_settings_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -205,6 +385,45 @@ CREATE TRIGGER update_app_settings_updated_at BEFORE UPDATE ON public.app_settin
 --
 
 CREATE TRIGGER update_department_settings_updated_at BEFORE UPDATE ON public.department_settings FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: employees update_employees_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_employees_updated_at BEFORE UPDATE ON public.employees FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: admin_action_logs admin_action_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_action_logs
+    ADD CONSTRAINT admin_action_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: feedback feedback_assigned_to_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feedback
+    ADD CONSTRAINT feedback_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.employees(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sub_statuses sub_statuses_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sub_statuses
+    ADD CONSTRAINT sub_statuses_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id);
+
+
+--
+-- Name: user_departments user_departments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_departments
+    ADD CONSTRAINT user_departments_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -237,6 +456,20 @@ CREATE POLICY "Admins can delete settings" ON public.app_settings FOR DELETE USI
 
 
 --
+-- Name: sub_statuses Admins can delete sub_statuses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can delete sub_statuses" ON public.sub_statuses FOR DELETE USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: admin_action_logs Admins can insert action logs; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can insert action logs" ON public.admin_action_logs FOR INSERT WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
 -- Name: department_settings Admins can insert department settings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -248,6 +481,41 @@ CREATE POLICY "Admins can insert department settings" ON public.department_setti
 --
 
 CREATE POLICY "Admins can insert settings" ON public.app_settings FOR INSERT WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: sub_statuses Admins can insert sub_statuses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can insert sub_statuses" ON public.sub_statuses FOR INSERT WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: employees Admins can manage employees; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage employees" ON public.employees USING (public.has_role(auth.uid(), 'admin'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: residential_objects Admins can manage residential objects; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage residential objects" ON public.residential_objects USING (public.has_role(auth.uid(), 'admin'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: user_departments Admins can manage user departments; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage user departments" ON public.user_departments USING (public.has_role(auth.uid(), 'admin'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: admin_action_logs Admins can read action logs; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can read action logs" ON public.admin_action_logs FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 
 --
@@ -272,6 +540,13 @@ CREATE POLICY "Admins can read settings" ON public.app_settings FOR SELECT USING
 
 
 --
+-- Name: sub_statuses Admins can read sub_statuses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can read sub_statuses" ON public.sub_statuses FOR SELECT USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
 -- Name: department_settings Admins can update department settings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -293,10 +568,31 @@ CREATE POLICY "Admins can update settings" ON public.app_settings FOR UPDATE USI
 
 
 --
+-- Name: sub_statuses Admins can update sub_statuses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can update sub_statuses" ON public.sub_statuses FOR UPDATE USING (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
 -- Name: department_settings Anyone can read department settings for integrations; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Anyone can read department settings for integrations" ON public.department_settings FOR SELECT USING (true);
+
+
+--
+-- Name: employees Anyone can read employees; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can read employees" ON public.employees FOR SELECT USING (true);
+
+
+--
+-- Name: residential_objects Anyone can read residential objects; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can read residential objects" ON public.residential_objects FOR SELECT USING (true);
 
 
 --
@@ -314,11 +610,24 @@ CREATE POLICY "Anyone can submit feedback" ON public.feedback FOR INSERT WITH CH
 
 
 --
+-- Name: user_departments Users can read own department; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Users can read own department" ON public.user_departments FOR SELECT USING ((user_id = auth.uid()));
+
+
+--
 -- Name: user_roles Users can read own roles; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Users can read own roles" ON public.user_roles FOR SELECT TO authenticated USING ((user_id = auth.uid()));
 
+
+--
+-- Name: admin_action_logs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.admin_action_logs ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: app_settings; Type: ROW SECURITY; Schema: public; Owner: -
@@ -333,10 +642,34 @@ ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.department_settings ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: employees; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: feedback; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: residential_objects; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.residential_objects ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: sub_statuses; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sub_statuses ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: user_departments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.user_departments ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: user_roles; Type: ROW SECURITY; Schema: public; Owner: -
@@ -349,3 +682,6 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 --
 
 
+
+
+COMMIT;
