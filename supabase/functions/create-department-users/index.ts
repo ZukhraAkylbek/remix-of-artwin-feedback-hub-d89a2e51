@@ -63,7 +63,20 @@ Deno.serve(async (req) => {
           });
 
         if (roleError) {
-          results.push({ email: user.email, success: false, error: roleError.message });
+          results.push({ email: user.email, success: false, error: `Role error: ${roleError.message}` });
+          continue;
+        }
+
+        // Add department assignment
+        const { error: deptError } = await supabase
+          .from('user_departments')
+          .insert({
+            user_id: authData.user.id,
+            department: user.department
+          });
+
+        if (deptError) {
+          results.push({ email: user.email, success: false, error: `Department error: ${deptError.message}` });
         } else {
           results.push({ email: user.email, success: true });
         }

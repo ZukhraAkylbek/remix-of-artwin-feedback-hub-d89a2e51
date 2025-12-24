@@ -1,1 +1,4 @@
 project_id = "tyfdbtsfgjjsfhgweezs"
+
+[functions.create-department-users]
+verify_jwt = false
