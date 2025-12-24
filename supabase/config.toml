@@ -2,3 +2,18 @@ project_id = "tyfdbtsfgjjsfhgweezs"
 
 [functions.create-department-users]
 verify_jwt = false
+
+[functions.submit-to-sheets]
+verify_jwt = false
+
+[functions.update-sheet-status]
+verify_jwt = false
+
+[functions.sync-from-sheets]
+verify_jwt = false
+
+[functions.send-to-bitrix]
+verify_jwt = false
+
+[functions.sync-bitrix-status]
+verify_jwt = false
