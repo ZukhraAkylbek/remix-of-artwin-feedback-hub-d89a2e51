@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Department, DepartmentSettings } from '@/types/feedback';
+import { Department, DepartmentSettings, DEPARTMENT_LABELS } from '@/types/feedback';
 
 export const getDepartmentSettings = async (department: Department): Promise<DepartmentSettings | null> => {
   try {
@@ -32,9 +32,12 @@ export const getDepartmentSettings = async (department: Department): Promise<Dep
   }
 };
 
+const ALL_DEPARTMENTS: Department[] = [
+  'ssl', 'zamgd_kom', 'service_aho', 'otitb_hse', 'omto', 
+  'hr', 'zamgd_tech', 'otd_razv', 'legal', 'finance', 'security'
+];
+
 export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> => {
-  const allDepartments: Department[] = ['management', 'reception', 'sales', 'hr', 'marketing', 'favorites_ssl', 'construction_tech', 'other'];
-  
   try {
     const { data, error } = await supabase
       .from('department_settings')
@@ -57,7 +60,7 @@ export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> 
     }));
 
     // Ensure all departments have settings (create empty ones for missing)
-    return allDepartments.map(dept => {
+    return ALL_DEPARTMENTS.map(dept => {
       const existing = existingSettings.find(s => s.department === dept);
       if (existing) return existing;
       return {
@@ -73,7 +76,7 @@ export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> 
     });
   } catch (e) {
     console.error('Error in getAllDepartmentSettings:', e);
-    return allDepartments.map(dept => ({
+    return ALL_DEPARTMENTS.map(dept => ({
       id: '',
       department: dept,
       googleSheetsId: null,
@@ -114,15 +117,5 @@ export const saveDepartmentSettings = async (settings: DepartmentSettings): Prom
 };
 
 export const getDepartmentName = (dept: string): string => {
-  const names: Record<string, string> = {
-    management: 'Руководство',
-    reception: 'Reception',
-    sales: 'Отдел продаж',
-    hr: 'HR (сотрудники, условия труда)',
-    marketing: 'Маркетинг',
-    favorites_ssl: 'ССЛ (Клиенты/Любимчики)',
-    construction_tech: 'Строительство (ТехОтдел)',
-    other: 'Безопасность и экология (ОТиТБ)',
-  };
-  return names[dept] || dept;
+  return DEPARTMENT_LABELS[dept as Department] || dept;
 };

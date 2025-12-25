@@ -1,4 +1,4 @@
-import { Department } from '@/types/feedback';
+import { Department, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Logo } from '@/components/Logo';
 import { 
   LayoutDashboard, 
@@ -13,7 +13,13 @@ import {
   History,
   Heart,
   HardHat,
-  MoreHorizontal
+  Shield,
+  Scale,
+  Banknote,
+  Package,
+  AlertTriangle,
+  Building2,
+  Lightbulb
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,25 +32,17 @@ interface AdminSidebarProps {
 }
 
 const departmentIcons: Record<Department, React.ReactNode> = {
-  management: <LayoutDashboard className="w-5 h-5" />,
-  reception: <Users className="w-5 h-5" />,
-  sales: <Wallet className="w-5 h-5" />,
+  ssl: <Heart className="w-5 h-5" />,
+  zamgd_kom: <Megaphone className="w-5 h-5" />,
+  service_aho: <Building2 className="w-5 h-5" />,
+  otitb_hse: <AlertTriangle className="w-5 h-5" />,
+  omto: <Package className="w-5 h-5" />,
   hr: <Users className="w-5 h-5" />,
-  marketing: <Megaphone className="w-5 h-5" />,
-  favorites_ssl: <Heart className="w-5 h-5" />,
-  construction_tech: <HardHat className="w-5 h-5" />,
-  other: <MoreHorizontal className="w-5 h-5" />,
-};
-
-const departmentLabels: Record<Department, string> = {
-  management: 'Руководство',
-  reception: 'Reception',
-  sales: 'Продажи',
-  hr: 'HR',
-  marketing: 'Маркетинг',
-  favorites_ssl: 'Любимчики - ССЛ',
-  construction_tech: 'Стройка - Техотдел',
-  other: 'Прочее',
+  zamgd_tech: <HardHat className="w-5 h-5" />,
+  otd_razv: <Lightbulb className="w-5 h-5" />,
+  legal: <Scale className="w-5 h-5" />,
+  finance: <Banknote className="w-5 h-5" />,
+  security: <Shield className="w-5 h-5" />,
 };
 
 const menuItems = [
@@ -73,7 +71,7 @@ export const AdminSidebar = ({
         <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent">
           {departmentIcons[currentDepartment]}
           <div>
-            <p className="text-sm font-medium">{departmentLabels[currentDepartment]}</p>
+            <p className="text-sm font-medium">{DEPARTMENT_LABELS[currentDepartment]}</p>
             <p className="text-xs text-sidebar-foreground/60">Администратор</p>
           </div>
         </div>
@@ -103,7 +101,7 @@ export const AdminSidebar = ({
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
         >
           <ArrowLeftRight className="w-5 h-5" />
-          Сменить департамент
+          Сменить отдел
         </button>
         <button
           onClick={onLogout}

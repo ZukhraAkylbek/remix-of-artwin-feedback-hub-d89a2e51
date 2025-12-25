@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Feedback, Department, FeedbackStatus, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Loader2, CheckCircle, ChevronRight, User, UserX, RefreshCw, AlertTriangle, Lightbulb, Shield, Heart } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, ChevronRight, User, UserX, RefreshCw, AlertTriangle, Lightbulb, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { syncStatusesFromGoogleSheets, syncStatusesFromBitrix, getSubStatusName } from '@/lib/integrations';
 import { toast } from 'sonner';
@@ -23,17 +23,19 @@ const statusConfig: Record<FeedbackStatus, { label: string; icon: React.ReactNod
 const typeIcons: Record<string, React.ReactNode> = {
   remark: <AlertTriangle className="w-5 h-5" />,
   suggestion: <Lightbulb className="w-5 h-5" />,
-  safety: <Shield className="w-5 h-5" />,
   gratitude: <Heart className="w-5 h-5" />,
 };
+
+// SSL sees all feedback from all departments
+const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl'];
 
 export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: TicketListProps) => {
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [isSyncingBitrix, setIsSyncingBitrix] = useState(false);
   
-  // Management sees all feedback, other departments see only their own
-  const departmentFeedback = department === 'management' 
+  // SSL sees all feedback, other departments see only their own
+  const departmentFeedback = GLOBAL_VIEW_DEPARTMENTS.includes(department)
     ? feedback 
     : feedback.filter(f => f.department === department);
   const filteredFeedback = statusFilter === 'all' ? departmentFeedback : departmentFeedback.filter(f => f.status === statusFilter);

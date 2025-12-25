@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Department } from '@/types/feedback';
+import { Department, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Employee, fetchEmployees, addEmployee, logAdminAction } from '@/lib/database';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -37,17 +37,6 @@ import { toast } from 'sonner';
 interface EmployeesPanelProps {
   department: Department;
 }
-
-const departmentLabels: Record<Department, string> = {
-  management: 'Руководство',
-  reception: 'Reception',
-  sales: 'Продажи',
-  hr: 'HR',
-  marketing: 'Маркетинг',
-  favorites_ssl: 'Любимчики - ССЛ',
-  construction_tech: 'Стройка - Техотдел',
-  other: 'Прочее',
-};
 
 export const EmployeesPanel = ({ department }: EmployeesPanelProps) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -208,13 +197,13 @@ export const EmployeesPanel = ({ department }: EmployeesPanelProps) => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Департамент</label>
+                <label className="text-sm font-medium mb-1.5 block">Отдел</label>
                 <Select value={formDepartment} onValueChange={(v) => setFormDepartment(v as Department)}>
                   <SelectTrigger className="w-full bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-background border border-border z-50">
-                    {Object.entries(departmentLabels).map(([key, label]) => (
+                    {Object.entries(DEPARTMENT_LABELS).map(([key, label]) => (
                       <SelectItem key={key} value={key}>{label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -240,7 +229,7 @@ export const EmployeesPanel = ({ department }: EmployeesPanelProps) => {
         <div className="space-y-6">
           {/* Current department employees */}
           <div className="card-elevated p-6">
-            <h3 className="font-semibold mb-4">{departmentLabels[department]}</h3>
+            <h3 className="font-semibold mb-4">{DEPARTMENT_LABELS[department]}</h3>
             {departmentEmployees.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">Нет сотрудников</p>
             ) : (
@@ -269,7 +258,7 @@ export const EmployeesPanel = ({ department }: EmployeesPanelProps) => {
           {/* Other departments */}
           {otherEmployees.length > 0 && (
             <div className="card-elevated p-6">
-              <h3 className="font-semibold mb-4">Другие департаменты</h3>
+              <h3 className="font-semibold mb-4">Другие отделы</h3>
               <div className="space-y-2">
                 {otherEmployees.map((emp) => (
                   <EmployeeRow
@@ -313,16 +302,6 @@ interface EmployeeRowProps {
   onDelete: () => void;
   showDepartment?: boolean;
 }
-
-const departmentLabelsForRow: Record<string, string> = {
-  management: 'Руководство',
-  sales: 'Продажи',
-  hr: 'HR',
-  marketing: 'Маркетинг',
-  favorites_ssl: 'Любимчики - ССЛ',
-  construction_tech: 'Стройка - Техотдел',
-  other: 'Прочее',
-};
 
 const EmployeeRow = ({
   employee,
@@ -392,7 +371,7 @@ const EmployeeRow = ({
       <div className="flex items-center gap-2">
         {showDepartment && (
           <Badge variant="outline" className="text-xs">
-            {departmentLabelsForRow[employee.department] || employee.department}
+            {DEPARTMENT_LABELS[employee.department as Department] || employee.department}
           </Badge>
         )}
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onStartEdit}>
@@ -405,4 +384,3 @@ const EmployeeRow = ({
     </div>
   );
 };
-

@@ -1,20 +1,23 @@
 import { Department, AIAnalysis, FeedbackType } from '@/types/feedback';
 
 const DEPARTMENT_KEYWORDS: Record<Department, string[]> = {
-  management: ['руководство', 'директор', 'стратегия', 'решение', 'управление'],
-  reception: ['ресепшн', 'приёмная', 'reception', 'встреча', 'посетитель'],
-  sales: ['продажи', 'клиент', 'сделка', 'контракт', 'выручка'],
+  ssl: ['недвижимость', 'собственник', 'владелец', 'квартира', 'сервис', 'любимчики', 'ссл'],
+  zamgd_kom: ['продажи', 'консультация', 'маркетинг', 'реклама', 'партнёрство', 'бренд'],
+  service_aho: ['ресепшн', 'офис', 'приёмная', 'reception', 'встреча', 'посетитель'],
+  otitb_hse: ['безопасность труда', 'hse', 'охрана труда', 'экология'],
+  omto: ['закупки', 'поставки', 'снабжение', 'материалы'],
   hr: ['сотрудник', 'зарплата', 'отпуск', 'увольнение', 'найм', 'кадры', 'коллектив', 'обучение'],
-  marketing: ['реклама', 'маркетинг', 'продвижение', 'бренд', 'кампания'],
-  favorites_ssl: ['любимчики', 'ссл', 'ssl', 'сервис'],
-  construction_tech: ['стройка', 'строительство', 'техотдел', 'технический', 'объект', 'ремонт'],
-  other: ['прочее', 'другое', 'разное'],
+  zamgd_tech: ['стройка', 'строительство', 'подрядчик', 'технический', 'объект', 'ремонт'],
+  otd_razv: ['проект', 'замечание', 'решение', 'разработка'],
+  legal: ['юрист', 'нотариус', 'договор', 'право', 'суд'],
+  finance: ['оплата', 'финансы', 'счёт', 'деньги', 'платёж'],
+  security: ['охрана', 'безопасность', 'пропуск', 'камера'],
 };
 
 export const classifyDepartment = (text: string): Department => {
   const lowerText = text.toLowerCase();
   let maxScore = 0;
-  let bestDepartment: Department = 'management';
+  let bestDepartment: Department = 'ssl';
 
   for (const [dept, keywords] of Object.entries(DEPARTMENT_KEYWORDS)) {
     const score = keywords.filter(kw => lowerText.includes(kw)).length;

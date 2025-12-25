@@ -1,6 +1,20 @@
 export type UserRole = 'resident' | 'client' | 'employee' | 'contractor';
 export type FeedbackType = 'remark' | 'suggestion' | 'gratitude';
-export type Department = 'management' | 'reception' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other';
+
+// Internal department codes for admin panel
+export type Department = 
+  | 'ssl'           // ССЛ - Сервис для владельцев недвижимости
+  | 'zamgd_kom'     // ЗамГД Ком - Продажи и консультации, Маркетинг и партнерства
+  | 'service_aho'   // Сервис / АХО - Ресепшн и офис-сервис
+  | 'otitb_hse'     // ОТиТБ (HSE) - Безопасность труда
+  | 'omto'          // ОМТО - Закупки и поставки
+  | 'hr'            // HR - HR и условия труда
+  | 'zamgd_tech'    // ЗамГД Тех - Стройка и подрядчики
+  | 'otd_razv'      // Отд.Разв - Проектные замечания и решения
+  | 'legal'         // Юр.отдел - Юристы и нотариус
+  | 'finance'       // Фин Отдел - Оплата и финансы
+  | 'security';     // СБ - Служба безопасности
+
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type SubStatus = string | null;
 
@@ -28,6 +42,37 @@ export const RESIDENTIAL_OBJECTS: { code: ResidentialObject; nameKey: string }[]
   { code: 'LND', nameKey: 'objectLondonSquare' },
   { code: 'S_УЧ', nameKey: 'objectUmutChyragy' },
 ];
+
+// User-friendly subject options (shown in feedback form)
+export const FEEDBACK_SUBJECTS: { code: Department; labelKey: string }[] = [
+  { code: 'ssl', labelKey: 'subjectPropertyService' },
+  { code: 'zamgd_kom', labelKey: 'subjectSalesConsulting' },
+  { code: 'service_aho', labelKey: 'subjectReceptionOffice' },
+  { code: 'otitb_hse', labelKey: 'subjectHSE' },
+  { code: 'omto', labelKey: 'subjectProcurement' },
+  { code: 'zamgd_kom', labelKey: 'subjectMarketingPartnerships' },
+  { code: 'hr', labelKey: 'subjectHRConditions' },
+  { code: 'zamgd_tech', labelKey: 'subjectConstructionContractors' },
+  { code: 'otd_razv', labelKey: 'subjectProjectRemarks' },
+  { code: 'legal', labelKey: 'subjectLegal' },
+  { code: 'finance', labelKey: 'subjectFinance' },
+  { code: 'security', labelKey: 'subjectSecurity' },
+];
+
+// Short department labels for admin panel
+export const DEPARTMENT_LABELS: Record<Department, string> = {
+  ssl: 'ССЛ',
+  zamgd_kom: 'ЗамГД Ком',
+  service_aho: 'Сервис / АХО',
+  otitb_hse: 'ОТиТБ (HSE)',
+  omto: 'ОМТО',
+  hr: 'HR',
+  zamgd_tech: 'ЗамГД Тех',
+  otd_razv: 'Отд.Разв',
+  legal: 'Юр.отдел',
+  finance: 'Фин Отдел',
+  security: 'СБ',
+};
 
 export const FEEDBACK_TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bgColor: string }> = {
   remark: { label: 'Замечание', color: 'hsl(0 72% 51%)', bgColor: 'hsl(0 72% 96%)' },

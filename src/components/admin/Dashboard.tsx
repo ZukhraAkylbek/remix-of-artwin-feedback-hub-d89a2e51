@@ -12,9 +12,12 @@ interface DashboardProps {
   department: Department;
 }
 
+// SSL sees all feedback from all departments
+const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl'];
+
 export const Dashboard = ({ feedback, department }: DashboardProps) => {
-  // Management sees all feedback, other departments see only their own
-  const departmentFeedback = department === 'management' 
+  // SSL sees all feedback, other departments see only their own
+  const departmentFeedback = GLOBAL_VIEW_DEPARTMENTS.includes(department)
     ? feedback 
     : feedback.filter(f => f.department === department);
   
@@ -42,7 +45,7 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold mb-2">Дашборд</h1>
-        <p className="text-muted-foreground">Обзор обращений вашего департамента</p>
+        <p className="text-muted-foreground">Обзор обращений вашего отдела</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

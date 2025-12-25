@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Feedback, Department, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
+import { Feedback, Department, FEEDBACK_TYPE_CONFIG, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Send, FileText, Loader2 } from 'lucide-react';
 import { getSettings } from '@/lib/storage';
@@ -10,26 +10,15 @@ interface ReportsPanelProps {
   department: Department;
 }
 
-const getDepartmentName = (dept: Department): string => {
-  const names: Record<Department, string> = {
-    management: 'Руководство',
-    reception: 'Reception',
-    sales: 'Продажи',
-    hr: 'HR',
-    marketing: 'Маркетинг',
-    favorites_ssl: 'Любимчики - ССЛ',
-    construction_tech: 'Стройка - Техотдел',
-    other: 'Прочее',
-  };
-  return names[dept];
-};
+// SSL sees all feedback from all departments
+const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl'];
 
 export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [report, setReport] = useState<string>('');
 
-  // Management sees all feedback, other departments see only their own
-  const departmentFeedback = department === 'management' 
+  // SSL sees all feedback, other departments see only their own
+  const departmentFeedback = GLOBAL_VIEW_DEPARTMENTS.includes(department)
     ? feedback 
     : feedback.filter(f => f.department === department);
 
@@ -48,7 +37,7 @@ export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
 📊 Стратегический отчёт по обращениям
 
 Период: ${new Date().toLocaleDateString('ru')}
-Департамент: ${getDepartmentName(department)}
+Отдел: ${DEPARTMENT_LABELS[department]}
 
 📈 Статистика:
 - Всего обращений: ${departmentFeedback.length}
