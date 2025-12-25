@@ -11,6 +11,7 @@ import { SettingsPanel } from '@/components/admin/SettingsPanel';
 import { ReportsPanel } from '@/components/admin/ReportsPanel';
 import { EmployeesPanel } from '@/components/admin/EmployeesPanel';
 import { HistoryPanel } from '@/components/admin/HistoryPanel';
+import { MeetingsPanel } from '@/components/admin/MeetingsPanel';
 import { DepartmentSelector } from '@/components/admin/DepartmentSelector';
 import { Footer } from '@/components/Footer';
 
@@ -111,6 +112,16 @@ const Admin = () => {
 
           {activeTab === 'reports' && (
             <ReportsPanel feedback={feedback} department={department} />
+          )}
+
+          {activeTab === 'meetings' && department === 'rukovodstvo' && (
+            <MeetingsPanel 
+              feedback={feedback} 
+              onSelectTicket={(id) => {
+                setSelectedTicketId(id);
+                setActiveTab('tickets');
+              }} 
+            />
           )}
 
           {activeTab === 'employees' && (

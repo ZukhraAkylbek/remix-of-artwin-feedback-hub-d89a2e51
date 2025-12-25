@@ -12,6 +12,7 @@ const DEPARTMENT_KEYWORDS: Record<Department, string[]> = {
   legal: ['юрист', 'нотариус', 'договор', 'право', 'суд'],
   finance: ['оплата', 'финансы', 'счёт', 'деньги', 'платёж'],
   security: ['охрана', 'безопасность', 'пропуск', 'камера'],
+  rukovodstvo: ['руководство', 'директор', 'управление', 'стратегия'],
 };
 
 export const classifyDepartment = (text: string): Department => {

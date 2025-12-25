@@ -19,7 +19,9 @@ import {
   Package,
   AlertTriangle,
   Building2,
-  Lightbulb
+  Lightbulb,
+  Crown,
+  CalendarCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,11 +45,20 @@ const departmentIcons: Record<Department, React.ReactNode> = {
   legal: <Scale className="w-5 h-5" />,
   finance: <Banknote className="w-5 h-5" />,
   security: <Shield className="w-5 h-5" />,
+  rukovodstvo: <Crown className="w-5 h-5" />,
 };
 
-const menuItems = [
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  onlyForRukovodstvo?: boolean;
+}
+
+const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Дашборд', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'tickets', label: 'Обращения', icon: <MessageSquare className="w-5 h-5" /> },
+  { id: 'meetings', label: 'Собрания', icon: <CalendarCheck className="w-5 h-5" />, onlyForRukovodstvo: true },
   { id: 'employees', label: 'Сотрудники', icon: <Users className="w-5 h-5" /> },
   { id: 'reports', label: 'Отчёты', icon: <FileText className="w-5 h-5" /> },
   { id: 'history', label: 'История', icon: <History className="w-5 h-5" /> },
@@ -78,21 +89,23 @@ export const AdminSidebar = ({
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onTabChange(item.id)}
-            className={cn(
-              'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
-              activeTab === item.id
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
-            )}
-          >
-            {item.icon}
-            {item.label}
-          </button>
-        ))}
+        {menuItems
+          .filter(item => !item.onlyForRukovodstvo || currentDepartment === 'rukovodstvo')
+          .map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                activeTab === item.id
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
+              )}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
       </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-1">

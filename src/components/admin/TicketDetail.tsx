@@ -467,15 +467,32 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                 </PopoverContent>
               </Popover>
               {deadline && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleDeadlineChange(undefined)}
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Снять дедлайн
-                </Button>
+                <div className="mt-3 space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={() => {
+                      const title = encodeURIComponent(`Дедлайн: ${FEEDBACK_TYPE_CONFIG[ticket.type]?.label || ticket.type}`);
+                      const details = encodeURIComponent(`Обращение: ${ticket.message}\n\nСтатус решения: ${ticket.subStatus || 'Не указан'}`);
+                      const dateStr = format(deadline, "yyyyMMdd'T'HHmmss");
+                      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dateStr}/${dateStr}`;
+                      window.open(url, '_blank');
+                    }}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Добавить в мой календарь
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeadlineChange(undefined)}
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Снять дедлайн
+                  </Button>
+                </div>
               )}
               {deadline && new Date() > deadline && (
                 <p className="text-sm text-destructive mt-2 flex items-center gap-1">

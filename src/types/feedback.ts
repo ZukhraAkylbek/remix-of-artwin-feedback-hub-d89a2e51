@@ -13,7 +13,8 @@ export type Department =
   | 'otd_razv'      // Отд.Разв - Проектные замечания и решения
   | 'legal'         // Юр.отдел - Юристы и нотариус
   | 'finance'       // Фин Отдел - Оплата и финансы
-  | 'security';     // СБ - Служба безопасности
+  | 'security'      // СБ - Служба безопасности
+  | 'rukovodstvo';  // Руководство
 
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
 export type SubStatus = string | null;
@@ -72,6 +73,7 @@ export const DEPARTMENT_LABELS: Record<Department, string> = {
   legal: 'Юр.отдел',
   finance: 'Фин Отдел',
   security: 'СБ',
+  rukovodstvo: 'Руководство',
 };
 
 export const FEEDBACK_TYPE_CONFIG: Record<FeedbackType, { label: string; color: string; bgColor: string }> = {
