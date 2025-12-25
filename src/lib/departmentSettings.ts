@@ -91,22 +91,49 @@ export const getAllDepartmentSettings = async (): Promise<DepartmentSettings[]> 
 
 export const saveDepartmentSettings = async (settings: DepartmentSettings): Promise<boolean> => {
   try {
-    // Use upsert to create or update
-    const { error } = await supabase
+    // Check if settings with this department already exist
+    const { data: existing } = await supabase
       .from('department_settings')
-      .upsert({
-        department: settings.department,
-        google_sheets_id: settings.googleSheetsId,
-        google_service_account_email: settings.googleServiceAccountEmail,
-        google_private_key: settings.googlePrivateKey,
-        telegram_bot_token: settings.telegramBotToken,
-        telegram_chat_id: settings.telegramChatId,
-        bitrix_webhook_url: settings.bitrixWebhookUrl,
-      } as any, { onConflict: 'department' });
+      .select('id')
+      .eq('department', settings.department)
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error saving department settings:', error);
-      return false;
+    if (existing) {
+      // Update existing record
+      const { error } = await supabase
+        .from('department_settings')
+        .update({
+          google_sheets_id: settings.googleSheetsId,
+          google_service_account_email: settings.googleServiceAccountEmail,
+          google_private_key: settings.googlePrivateKey,
+          telegram_bot_token: settings.telegramBotToken,
+          telegram_chat_id: settings.telegramChatId,
+          bitrix_webhook_url: settings.bitrixWebhookUrl,
+        })
+        .eq('department', settings.department);
+
+      if (error) {
+        console.error('Error updating department settings:', error);
+        return false;
+      }
+    } else {
+      // Insert new record
+      const { error } = await supabase
+        .from('department_settings')
+        .insert({
+          department: settings.department,
+          google_sheets_id: settings.googleSheetsId,
+          google_service_account_email: settings.googleServiceAccountEmail,
+          google_private_key: settings.googlePrivateKey,
+          telegram_bot_token: settings.telegramBotToken,
+          telegram_chat_id: settings.telegramChatId,
+          bitrix_webhook_url: settings.bitrixWebhookUrl,
+        });
+
+      if (error) {
+        console.error('Error inserting department settings:', error);
+        return false;
+      }
     }
 
     return true;
