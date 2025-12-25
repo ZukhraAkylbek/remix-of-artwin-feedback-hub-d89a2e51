@@ -12,8 +12,8 @@ interface DashboardProps {
   department: Department;
 }
 
-// SSL sees all feedback from all departments
-const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl'];
+// SSL and Rukovodstvo see all feedback from all departments
+const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl', 'rukovodstvo'];
 
 export const Dashboard = ({ feedback, department }: DashboardProps) => {
   // SSL sees all feedback, other departments see only their own
