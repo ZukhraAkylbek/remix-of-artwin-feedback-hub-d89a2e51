@@ -26,12 +26,13 @@ export const DepartmentSettingsPanel = () => {
   const [savingDept, setSavingDept] = useState<string | null>(null);
   const [activeDept, setActiveDept] = useState<Department>('ssl');
 
+  const loadSettings = async () => {
+    const data = await getAllDepartmentSettings();
+    setSettings(data);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    const loadSettings = async () => {
-      const data = await getAllDepartmentSettings();
-      setSettings(data);
-      setIsLoading(false);
-    };
     loadSettings();
   }, []);
 
@@ -43,6 +44,8 @@ export const DepartmentSettingsPanel = () => {
     const success = await saveDepartmentSettings(deptSettings);
     if (success) {
       toast.success(`Настройки ${getDepartmentName(dept)} сохранены`);
+      // Reload settings to ensure we have the latest data from DB
+      await loadSettings();
     } else {
       toast.error('Ошибка сохранения');
     }
