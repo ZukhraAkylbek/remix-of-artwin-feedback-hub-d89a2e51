@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Department, DepartmentSettings } from '@/types/feedback';
+import { Department, DepartmentSettings, DEPARTMENT_LABELS } from '@/types/feedback';
 import { getAllDepartmentSettings, saveDepartmentSettings, getDepartmentName } from '@/lib/departmentSettings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,11 +15,16 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const ALL_DEPARTMENTS: Department[] = [
+  'ssl', 'zamgd_kom', 'service_aho', 'otitb_hse', 'omto', 
+  'hr', 'zamgd_tech', 'otd_razv', 'legal', 'finance', 'security'
+];
+
 export const DepartmentSettingsPanel = () => {
   const [settings, setSettings] = useState<DepartmentSettings[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [savingDept, setSavingDept] = useState<string | null>(null);
-  const [activeDept, setActiveDept] = useState<Department>('management');
+  const [activeDept, setActiveDept] = useState<Department>('ssl');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -58,29 +63,27 @@ export const DepartmentSettingsPanel = () => {
     );
   }
 
-  const departments: Department[] = ['management', 'reception', 'sales', 'hr', 'marketing', 'favorites_ssl', 'construction_tech', 'other'];
-
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Настройки по департаментам</h2>
+        <h2 className="text-xl font-semibold mb-2">Настройки по отделам</h2>
         <p className="text-muted-foreground text-sm">
-          У каждого департамента свои уникальные Google Sheets и Telegram настройки
+          У каждого отдела свои уникальные Google Sheets и Telegram настройки
         </p>
       </div>
 
       <Tabs value={activeDept} onValueChange={(v) => setActiveDept(v as Department)}>
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          {departments.map(dept => {
+          {ALL_DEPARTMENTS.map(dept => {
             const deptSettings = settings.find(s => s.department === dept);
             const hasConfig = deptSettings?.googleSheetsId || deptSettings?.telegramBotToken || deptSettings?.bitrixWebhookUrl;
             return (
               <TabsTrigger 
                 key={dept} 
                 value={dept}
-                className="relative data-[state=active]:bg-background"
+                className="relative data-[state=active]:bg-background text-xs"
               >
-                {getDepartmentName(dept)}
+                {DEPARTMENT_LABELS[dept]}
                 {hasConfig && (
                   <CheckCircle2 className="w-3 h-3 text-success ml-1" />
                 )}
@@ -89,7 +92,7 @@ export const DepartmentSettingsPanel = () => {
           })}
         </TabsList>
 
-        {departments.map(dept => {
+        {ALL_DEPARTMENTS.map(dept => {
           const deptSettings = settings.find(s => s.department === dept);
           if (!deptSettings) return null;
 
@@ -102,7 +105,7 @@ export const DepartmentSettingsPanel = () => {
                     <FileSpreadsheet className="w-5 h-5 text-success" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Google Sheets — {getDepartmentName(dept)}</h3>
+                    <h3 className="font-semibold">Google Sheets — {DEPARTMENT_LABELS[dept]}</h3>
                     <p className="text-sm text-muted-foreground">Синхронизация данных</p>
                   </div>
                 </div>
@@ -142,7 +145,7 @@ export const DepartmentSettingsPanel = () => {
                     <MessageCircle className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Telegram Bot — {getDepartmentName(dept)}</h3>
+                    <h3 className="font-semibold">Telegram Bot — {DEPARTMENT_LABELS[dept]}</h3>
                     <p className="text-sm text-muted-foreground">Уведомления о новых обращениях</p>
                   </div>
                 </div>
@@ -174,7 +177,7 @@ export const DepartmentSettingsPanel = () => {
                     <Webhook className="w-5 h-5 text-orange-500" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Bitrix24 — {getDepartmentName(dept)}</h3>
+                    <h3 className="font-semibold">Bitrix24 — {DEPARTMENT_LABELS[dept]}</h3>
                     <p className="text-sm text-muted-foreground">Вебхук для создания лидов/задач</p>
                   </div>
                 </div>
@@ -204,7 +207,7 @@ export const DepartmentSettingsPanel = () => {
                 ) : (
                   <Save className="w-5 h-5" />
                 )}
-                Сохранить настройки {getDepartmentName(dept)}
+                Сохранить настройки {DEPARTMENT_LABELS[dept]}
               </Button>
             </TabsContent>
           );

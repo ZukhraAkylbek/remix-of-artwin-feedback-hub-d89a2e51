@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FeedbackType, UserRole, Department, Feedback, RESIDENTIAL_OBJECTS, ResidentialObject, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
+import { FeedbackType, UserRole, Department, Feedback, RESIDENTIAL_OBJECTS, ResidentialObject, FEEDBACK_TYPE_CONFIG, FEEDBACK_SUBJECTS } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,23 +20,13 @@ interface FeedbackFormProps {
   onSuccess: () => void;
 }
 
-const departmentOptions: { value: Department; labelKey: 'management' | 'reception' | 'sales' | 'hr' | 'marketing' | 'favorites_ssl' | 'construction_tech' | 'other' }[] = [
-  { value: 'reception', labelKey: 'reception' },
-  { value: 'construction_tech', labelKey: 'construction_tech' },
-  { value: 'other', labelKey: 'other' },
-  { value: 'hr', labelKey: 'hr' },
-  { value: 'sales', labelKey: 'sales' },
-  { value: 'marketing', labelKey: 'marketing' },
-  { value: 'favorites_ssl', labelKey: 'favorites_ssl' },
-];
-
 export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) => {
   const { t } = useI18n();
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
-  const [department, setDepartment] = useState<Department>('reception');
+  const [department, setDepartment] = useState<Department>('ssl');
   const [objectCode, setObjectCode] = useState<ResidentialObject | ''>('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,15 +175,15 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
         </div>
 
         <div className="space-y-2">
-          <Label>{t('department')}</Label>
+          <Label>{t('feedbackSubject')}</Label>
           <Select value={department} onValueChange={(value) => setDepartment(value as Department)}>
             <SelectTrigger className="h-12 bg-background">
-              <SelectValue placeholder={t('selectDepartment')} />
+              <SelectValue placeholder={t('selectSubject')} />
             </SelectTrigger>
             <SelectContent className="bg-background border border-border z-50">
-              {departmentOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {t(option.labelKey)}
+              {FEEDBACK_SUBJECTS.map((subject) => (
+                <SelectItem key={`${subject.code}-${subject.labelKey}`} value={subject.code}>
+                  {t(subject.labelKey as any)}
                 </SelectItem>
               ))}
             </SelectContent>
