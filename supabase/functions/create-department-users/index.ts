@@ -51,7 +51,12 @@ Deno.serve(async (req) => {
       const existingUser = existingUsers?.users?.find(u => u.email === user.email);
       
       if (existingUser) {
-        // User exists, update department
+        // User exists, update password and department
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          existingUser.id,
+          { password: user.password }
+        );
+
         const { error: deptError } = await supabase
           .from('user_departments')
           .upsert({
@@ -59,10 +64,10 @@ Deno.serve(async (req) => {
             department: user.department
           }, { onConflict: 'user_id' });
 
-        if (deptError) {
-          results.push({ email: user.email, success: false, error: `Department update error: ${deptError.message}` });
+        if (updateError || deptError) {
+          results.push({ email: user.email, success: false, error: `Update error: ${updateError?.message || deptError?.message}` });
         } else {
-          results.push({ email: user.email, success: true, error: 'User already exists, department updated' });
+          results.push({ email: user.email, success: true, error: 'User updated with new password' });
         }
         continue;
       }
