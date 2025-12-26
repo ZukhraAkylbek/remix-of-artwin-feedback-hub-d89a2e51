@@ -1,4 +1,5 @@
-import { Feedback, Department, DEPARTMENT_LABELS, FEEDBACK_TYPE_CONFIG, UrgencyLevel, URGENCY_LEVEL_CONFIG } from '@/types/feedback';
+import { useState } from 'react';
+import { Feedback, Department, DEPARTMENT_LABELS, FEEDBACK_TYPE_CONFIG, UrgencyLevel, URGENCY_LEVEL_CONFIG, FeedbackStatus } from '@/types/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -9,7 +10,8 @@ import {
   CheckCircle,
   User,
   Calendar as CalendarIcon,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -19,12 +21,25 @@ interface MeetingsPanelProps {
   onSelectTicket: (id: string) => void;
 }
 
+const statusConfig: Record<FeedbackStatus, { label: string; icon: React.ReactNode }> = {
+  new: { label: 'Новые', icon: <Clock className="w-4 h-4" /> },
+  in_progress: { label: 'В процессе', icon: <Loader2 className="w-4 h-4" /> },
+  resolved: { label: 'Решено', icon: <CheckCircle className="w-4 h-4" /> },
+};
+
 export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) => {
+  const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
+  
   // Filter tickets with urgency level 3 or 4
   const meetingTickets = feedback.filter(f => (f.urgencyLevel || 1) >= 3);
+  
+  // Apply status filter
+  const filteredMeetingTickets = statusFilter === 'all' 
+    ? meetingTickets 
+    : meetingTickets.filter(f => f.status === statusFilter);
 
-  const urgentTickets = meetingTickets.filter(f => f.urgencyLevel === 4);
-  const highPriorityTickets = meetingTickets.filter(f => f.urgencyLevel === 3);
+  const urgentTickets = filteredMeetingTickets.filter(f => f.urgencyLevel === 4);
+  const highPriorityTickets = filteredMeetingTickets.filter(f => f.urgencyLevel === 3);
 
   const getGoogleCalendarUrl = (ticket: Feedback) => {
     const title = encodeURIComponent(`Собрание: ${FEEDBACK_TYPE_CONFIG[ticket.type]?.label || ticket.type} - ${DEPARTMENT_LABELS[ticket.department as Department] || ticket.department}`);
@@ -119,7 +134,24 @@ export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) 
         </p>
       </div>
 
-      {meetingTickets.length === 0 ? (
+      {/* Status Filter */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-sm text-muted-foreground mr-2">Статус:</span>
+        {(['all', 'new', 'in_progress', 'resolved'] as const).map((status) => (
+          <Button 
+            key={status} 
+            variant={statusFilter === status ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setStatusFilter(status)}
+            className="gap-1"
+          >
+            {status !== 'all' && statusConfig[status].icon}
+            {status === 'all' ? 'Все' : statusConfig[status].label}
+          </Button>
+        ))}
+      </div>
+
+      {filteredMeetingTickets.length === 0 ? (
         <div className="card-elevated p-12 text-center">
           <CalendarCheck className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
           <h3 className="text-lg font-medium mb-2">Нет обращений для собрания</h3>
