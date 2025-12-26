@@ -37,8 +37,8 @@ const typeIcons: Record<string, React.ReactNode> = {
   gratitude: <Heart className="w-4 h-4" />,
 };
 
-// SSL and rukovodstvo sees all feedback from all departments
-const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl', 'rukovodstvo'];
+// Only rukovodstvo sees all feedback from all departments
+const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['rukovodstvo'];
 
 export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: TicketListProps) => {
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
@@ -148,6 +148,7 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                 <TableHead>Ответственный</TableHead>
                 <TableHead>Дедлайн</TableHead>
                 <TableHead>Статус</TableHead>
+                <TableHead>Подстатус</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -221,6 +222,15 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                         {statusConfig[ticket.status].icon}
                         <span className="ml-1">{statusConfig[ticket.status].label}</span>
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {ticket.subStatus ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {ticket.subStatus}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <ChevronRight className="w-5 h-5 text-muted-foreground" />

@@ -14,8 +14,8 @@ export const RoleSelector = ({ selected, onSelect }: RoleSelectorProps) => {
   const roles: { id: UserRole; labelKey: 'employee' | 'client' | 'contractor' | 'resident'; descKey: 'employeeDesc' | 'clientDesc' | 'contractorDesc' | 'residentDesc'; icon: React.ReactNode }[] = [
     { id: 'resident', labelKey: 'resident', descKey: 'residentDesc', icon: <Home className="w-6 h-6" /> },
     { id: 'client', labelKey: 'client', descKey: 'clientDesc', icon: <Briefcase className="w-6 h-6" /> },
-    { id: 'employee', labelKey: 'employee', descKey: 'employeeDesc', icon: <User className="w-6 h-6" /> },
     { id: 'contractor', labelKey: 'contractor', descKey: 'contractorDesc', icon: <Truck className="w-6 h-6" /> },
+    { id: 'employee', labelKey: 'employee', descKey: 'employeeDesc', icon: <User className="w-6 h-6" /> },
   ];
 
   return (
