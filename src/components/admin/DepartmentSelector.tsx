@@ -39,14 +39,14 @@ const departmentCredentials: Record<Department, { email: string }> = {
   ssl: { email: 'clients@artwin.kg' },
   zamgd_kom: { email: 'sales@artwin.kg' },
   service_aho: { email: 'reception@artwin.kg' },
-  otitb_hse: { email: 'hse@artwin.kg' },
-  omto: { email: 'omto@artwin.kg' },
+  otitb_hse: { email: 'hse@artwin@gmail.com' },
+  omto: { email: 'zakup@artwin.kg' },
   hr: { email: 'hr@artwin.kg' },
   zamgd_tech: { email: 'tech@artwin.kg' },
-  otd_razv: { email: 'razv@artwin.kg' },
-  legal: { email: 'legal@artwin.kg' },
-  finance: { email: 'finance@artwin.kg' },
-  security: { email: 'security@artwin.kg' },
+  otd_razv: { email: 'razv@artwin.kf' },
+  legal: { email: 'law@artwin.kg' },
+  finance: { email: 'fin@artwin.kg' },
+  security: { email: 'safety@artwin.kg' },
 };
 
 export const DepartmentSelector = ({ onSelect, onLogout }: DepartmentSelectorProps) => {
