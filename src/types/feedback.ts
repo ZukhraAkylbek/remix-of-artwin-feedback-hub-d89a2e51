@@ -82,6 +82,15 @@ export const FEEDBACK_TYPE_CONFIG: Record<FeedbackType, { label: string; color: 
   gratitude: { label: 'Благодарность', color: 'hsl(142 71% 45%)', bgColor: 'hsl(142 71% 96%)' },
 };
 
+export type UrgencyLevel = 1 | 2 | 3 | 4;
+
+export const URGENCY_LEVEL_CONFIG: Record<UrgencyLevel, { label: string; color: string; bgColor: string }> = {
+  1: { label: '1 - Первая линия', color: 'hsl(142 71% 45%)', bgColor: 'hsl(142 71% 96%)' },
+  2: { label: '2 - Средний', color: 'hsl(217 91% 60%)', bgColor: 'hsl(217 91% 96%)' },
+  3: { label: '3 - Высокий', color: 'hsl(38 92% 50%)', bgColor: 'hsl(38 92% 96%)' },
+  4: { label: '4 - Критический', color: 'hsl(0 72% 51%)', bgColor: 'hsl(0 72% 96%)' },
+};
+
 export interface Feedback {
   id: string;
   createdAt: string;
@@ -102,6 +111,9 @@ export interface Feedback {
   deadline?: string;
   aiAnalysis?: AIAnalysis;
   comments: Comment[];
+  urgencyLevel?: UrgencyLevel;
+  redirectedFrom?: Department | null;
+  redirectedAt?: string | null;
 }
 
 export interface AIAnalysis {

@@ -162,10 +162,13 @@ export type Database = {
           message: string
           name: string | null
           object_code: string | null
+          redirected_at: string | null
+          redirected_from: string | null
           status: string
           sub_status: string | null
           type: string
           urgency: string
+          urgency_level: number | null
           user_role: string
         }
         Insert: {
@@ -183,10 +186,13 @@ export type Database = {
           message: string
           name?: string | null
           object_code?: string | null
+          redirected_at?: string | null
+          redirected_from?: string | null
           status?: string
           sub_status?: string | null
           type: string
           urgency?: string
+          urgency_level?: number | null
           user_role: string
         }
         Update: {
@@ -204,10 +210,13 @@ export type Database = {
           message?: string
           name?: string | null
           object_code?: string | null
+          redirected_at?: string | null
+          redirected_from?: string | null
           status?: string
           sub_status?: string | null
           type?: string
           urgency?: string
+          urgency_level?: number | null
           user_role?: string
         }
         Relationships: [

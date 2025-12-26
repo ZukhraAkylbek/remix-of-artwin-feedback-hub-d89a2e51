@@ -20,7 +20,10 @@ const rowToFeedback = (row: any): Feedback => ({
   assignedTo: row.assigned_to || undefined,
   deadline: row.deadline || undefined,
   aiAnalysis: row.ai_analysis,
-  comments: []
+  comments: [],
+  urgencyLevel: row.urgency_level || 1,
+  redirectedFrom: row.redirected_from || null,
+  redirectedAt: row.redirected_at || null,
 });
 
 // Fetch all feedback from database
@@ -373,6 +376,44 @@ export const updateFeedbackDeadline = async (id: string, deadline: string | null
 
   if (error) {
     console.error('Error updating deadline:', error);
+    return false;
+  }
+
+  return true;
+};
+
+// Update urgency level for feedback
+export const updateFeedbackUrgencyLevel = async (id: string, urgencyLevel: number): Promise<boolean> => {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ urgency_level: urgencyLevel })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating urgency level:', error);
+    return false;
+  }
+
+  return true;
+};
+
+// Redirect feedback to another department
+export const redirectFeedback = async (
+  id: string, 
+  newDepartment: string, 
+  originalDepartment: string
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ 
+      department: newDepartment,
+      redirected_from: originalDepartment,
+      redirected_at: new Date().toISOString()
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error redirecting feedback:', error);
     return false;
   }
 

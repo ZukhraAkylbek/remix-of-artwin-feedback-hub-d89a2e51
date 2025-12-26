@@ -32,7 +32,7 @@ export const getDepartmentSettings = async (department: Department): Promise<Dep
   }
 };
 
-const ALL_DEPARTMENTS: Department[] = [
+export const ALL_DEPARTMENTS: Department[] = [
   'ssl', 'zamgd_kom', 'service_aho', 'otitb_hse', 'omto', 
   'hr', 'zamgd_tech', 'otd_razv', 'legal', 'finance', 'security', 'rukovodstvo'
 ];

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Feedback, Department, DEPARTMENT_LABELS, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
+import { Feedback, Department, DEPARTMENT_LABELS, FEEDBACK_TYPE_CONFIG, UrgencyLevel, URGENCY_LEVEL_CONFIG } from '@/types/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 
 interface MeetingsPanelProps {
   feedback: Feedback[];
@@ -22,17 +20,11 @@ interface MeetingsPanelProps {
 }
 
 export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) => {
-  // Filter tickets with urgency level 3 or 4 (urgencyScore >= 7)
-  const meetingTickets = feedback.filter(f => {
-    const urgencyScore = f.aiAnalysis?.urgencyScore || 5;
-    return urgencyScore >= 7;
-  });
+  // Filter tickets with urgency level 3 or 4
+  const meetingTickets = feedback.filter(f => (f.urgencyLevel || 1) >= 3);
 
-  const urgentTickets = meetingTickets.filter(f => (f.aiAnalysis?.urgencyScore || 0) >= 9);
-  const highPriorityTickets = meetingTickets.filter(f => {
-    const score = f.aiAnalysis?.urgencyScore || 0;
-    return score >= 7 && score < 9;
-  });
+  const urgentTickets = meetingTickets.filter(f => f.urgencyLevel === 4);
+  const highPriorityTickets = meetingTickets.filter(f => f.urgencyLevel === 3);
 
   const getGoogleCalendarUrl = (ticket: Feedback) => {
     const title = encodeURIComponent(`Собрание: ${FEEDBACK_TYPE_CONFIG[ticket.type]?.label || ticket.type} - ${DEPARTMENT_LABELS[ticket.department as Department] || ticket.department}`);
@@ -45,7 +37,8 @@ export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) 
 
   const TicketCard = ({ ticket }: { ticket: Feedback }) => {
     const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
-    const urgencyScore = ticket.aiAnalysis?.urgencyScore || 5;
+    const level = ticket.urgencyLevel || 1;
+    const levelConfig = URGENCY_LEVEL_CONFIG[level as UrgencyLevel];
     
     return (
       <div 
@@ -61,18 +54,14 @@ export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) 
               <Building2 className="w-3 h-3 mr-1" />
               {DEPARTMENT_LABELS[ticket.department as Department] || ticket.department}
             </Badge>
-            {urgencyScore >= 9 && (
-              <Badge variant="destructive" className="gap-1">
-                <AlertTriangle className="w-3 h-3" />
-                Уровень 4
-              </Badge>
-            )}
-            {urgencyScore >= 7 && urgencyScore < 9 && (
-              <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 gap-1">
-                <AlertTriangle className="w-3 h-3" />
-                Уровень 3
-              </Badge>
-            )}
+            <Badge 
+              variant="outline" 
+              style={{ backgroundColor: levelConfig.bgColor, color: levelConfig.color, borderColor: levelConfig.color }}
+              className="gap-1"
+            >
+              <AlertTriangle className="w-3 h-3" />
+              Уровень {level}
+            </Badge>
           </div>
         </div>
 

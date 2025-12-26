@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Feedback, FeedbackStatus, Comment, Department, FEEDBACK_TYPE_CONFIG, FeedbackType, RESIDENTIAL_OBJECTS } from '@/types/feedback';
+import { Feedback, FeedbackStatus, Comment, Department, FEEDBACK_TYPE_CONFIG, FeedbackType, RESIDENTIAL_OBJECTS, URGENCY_LEVEL_CONFIG, UrgencyLevel, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,12 +25,14 @@ import {
   ExternalLink,
   Building,
   CalendarClock,
-  X
+  X,
+  ArrowRightLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback } from '@/lib/database';
 import { updateStatusInGoogleSheets } from '@/lib/integrations';
+import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
@@ -104,6 +106,10 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [deadline, setDeadline] = useState<Date | undefined>(ticket.deadline ? new Date(ticket.deadline) : undefined);
   const [deadlineEnabled, setDeadlineEnabled] = useState(false);
   const [isDeadlineOpen, setIsDeadlineOpen] = useState(false);
+  const [urgencyLevel, setUrgencyLevel] = useState<UrgencyLevel>(ticket.urgencyLevel || 1);
+  const [showRedirectDialog, setShowRedirectDialog] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [redirectTarget, setRedirectTarget] = useState<string>('');
 
   const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
   const objectInfo = ticket.objectCode ? RESIDENTIAL_OBJECTS.find(o => o.code === ticket.objectCode) : null;
@@ -234,6 +240,38 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
     if (!newComment.trim()) return;
     setNewComment('');
     toast.success('Комментарий добавлен');
+  };
+
+  const handleUrgencyChange = async (level: string) => {
+    const newLevel = parseInt(level) as UrgencyLevel;
+    const success = await updateFeedbackUrgencyLevel(ticket.id, newLevel);
+    if (success) {
+      await logAdminAction('urgency_change', 'feedback', ticket.id, { urgencyLevel: urgencyLevel }, { urgencyLevel: newLevel });
+      setUrgencyLevel(newLevel);
+      toast.success('Уровень обновлён');
+      onUpdate();
+    } else {
+      toast.error('Ошибка обновления уровня');
+    }
+  };
+
+  const handleRedirect = async () => {
+    if (!redirectTarget || redirectTarget === ticket.department) return;
+    setIsRedirecting(true);
+    const success = await redirectFeedback(ticket.id, redirectTarget, ticket.department);
+    if (success) {
+      await logAdminAction('redirect', 'feedback', ticket.id, 
+        { department: ticket.department }, 
+        { department: redirectTarget, redirectedFrom: ticket.department }
+      );
+      toast.success(`Обращение переадресовано в ${DEPARTMENT_LABELS[redirectTarget as Department]}`);
+      setShowRedirectDialog(false);
+      onUpdate();
+      onBack();
+    } else {
+      toast.error('Ошибка переадресации');
+    }
+    setIsRedirecting(false);
   };
 
   return (
@@ -424,6 +462,25 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
           </div>
 
           <div className="card-elevated p-6">
+            <h3 className="font-semibold mb-4">Уровень</h3>
+            <Select value={String(urgencyLevel)} onValueChange={handleUrgencyChange}>
+              <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-background border border-border z-50">
+                {([1, 2, 3, 4] as UrgencyLevel[]).map((level) => (
+                  <SelectItem key={level} value={String(level)}>
+                    <span style={{ color: URGENCY_LEVEL_CONFIG[level].color }}>
+                      {URGENCY_LEVEL_CONFIG[level].label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {urgencyLevel >= 3 && (
+              <p className="text-xs text-muted-foreground mt-2">Попадает в список руководства</p>
+            )}
+          </div>
+
+          <div className="card-elevated p-6">
             <h3 className="font-semibold mb-4">Ответственный</h3>
             <Select value={assignedEmployee || '_none'} onValueChange={handleAssignEmployee}>
               <SelectTrigger className="w-full bg-background"><SelectValue placeholder="Выберите сотрудника" /></SelectTrigger>
@@ -434,6 +491,46 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="card-elevated p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5" />
+              Переадресация
+            </h3>
+            {ticket.redirectedFrom && (
+              <p className="text-sm text-muted-foreground mb-3">
+                Переадресовано из: {DEPARTMENT_LABELS[ticket.redirectedFrom as Department]}
+              </p>
+            )}
+            <Dialog open={showRedirectDialog} onOpenChange={setShowRedirectDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full gap-2">
+                  <ArrowRightLeft className="w-4 h-4" />
+                  Передать в отдел
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-background">
+                <DialogHeader>
+                  <DialogTitle>Переадресовать обращение</DialogTitle>
+                  <DialogDescription>Выберите отдел для перенаправления</DialogDescription>
+                </DialogHeader>
+                <Select value={redirectTarget} onValueChange={setRedirectTarget}>
+                  <SelectTrigger className="w-full bg-background"><SelectValue placeholder="Выберите отдел" /></SelectTrigger>
+                  <SelectContent className="bg-background border border-border z-50">
+                    {ALL_DEPARTMENTS.filter(d => d !== ticket.department).map((dept) => (
+                      <SelectItem key={dept} value={dept}>{DEPARTMENT_LABELS[dept]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <DialogFooter>
+                  <Button onClick={handleRedirect} disabled={isRedirecting || !redirectTarget}>
+                    {isRedirecting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                    Переадресовать
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {deadlineEnabled && (
