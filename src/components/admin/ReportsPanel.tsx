@@ -10,8 +10,8 @@ interface ReportsPanelProps {
   department: Department;
 }
 
-// SSL sees all feedback from all departments
-const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl'];
+// SSL and Rukovodstvo see all feedback from all departments
+const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl', 'rukovodstvo'];
 
 export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
