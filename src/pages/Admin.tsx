@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Department, Feedback } from '@/types/feedback';
 import { fetchAllFeedback } from '@/lib/database';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { Dashboard } from '@/components/admin/Dashboard';
 import { TicketList } from '@/components/admin/TicketList';
@@ -26,7 +27,6 @@ const Admin = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Redirect to auth if not logged in or not admin
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
       navigate('/auth');
@@ -44,6 +44,25 @@ const Admin = () => {
     if (department && isAdmin) {
       loadFeedback();
     }
+  }, [department, isAdmin]);
+
+  useEffect(() => {
+    if (!department || !isAdmin) return;
+
+    const channel = supabase
+      .channel('feedback-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'feedback' },
+        () => {
+          loadFeedback();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [department, isAdmin]);
 
   const refreshData = () => {
