@@ -12,14 +12,19 @@ interface DepartmentUser {
 }
 
 const departmentUsers: DepartmentUser[] = [
-  { email: 'management@artwin.kg', password: 'artwinmain', department: 'management' },
-  { email: 'reception@artwin.kg', password: 'artwinreception', department: 'reception' },
-  { email: 'sales@artwin.kg', password: 'artwinsales', department: 'sales' },
+  { email: 'management@artwin.kg', password: 'artwinmain', department: 'rukovodstvo' },
+  { email: 'reception@artwin.kg', password: 'artwinreception', department: 'service_aho' },
+  { email: 'hse@artwin.kg', password: 'artwinhse', department: 'otitb_hse' },
+  { email: 'zakup@artwin.kg', password: 'artwinzakup', department: 'omto' },
+  { email: 'sales@artwin.kg', password: 'artwinsales', department: 'zamgd_kom' },
   { email: 'hr@artwin.kg', password: 'artwinhr', department: 'hr' },
-  { email: 'marketing@artwin.kg', password: 'artwinmarketing', department: 'marketing' },
-  { email: 'clients@artwin.kg', password: 'artwinclients', department: 'favorites_ssl' },
-  { email: 'tech@artwin.kg', password: 'artwintech', department: 'construction_tech' },
-  { email: 'safety@artwin.kg', password: 'artwinsafety', department: 'other' },
+  { email: 'marketing@artwin.kg', password: 'artwinmarketing', department: 'zamgd_kom' },
+  { email: 'clients@artwin.kg', password: 'artwinclients', department: 'ssl' },
+  { email: 'tech@artwin.kg', password: 'artwintech', department: 'zamgd_tech' },
+  { email: 'safety@artwin.kg', password: 'artwinsafety', department: 'security' },
+  { email: 'fin@artwin.kg', password: 'artwinfin', department: 'finance' },
+  { email: 'law@artwin.kg', password: 'artwinlaw', department: 'legal' },
+  { email: 'razv@artwin.kg', password: 'artwinrazv', department: 'otd_razv' },
 ];
 
 Deno.serve(async (req) => {
@@ -41,6 +46,27 @@ Deno.serve(async (req) => {
     const results: { email: string; success: boolean; error?: string }[] = [];
 
     for (const user of departmentUsers) {
+      // Check if user already exists
+      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(u => u.email === user.email);
+      
+      if (existingUser) {
+        // User exists, update department
+        const { error: deptError } = await supabase
+          .from('user_departments')
+          .upsert({
+            user_id: existingUser.id,
+            department: user.department
+          }, { onConflict: 'user_id' });
+
+        if (deptError) {
+          results.push({ email: user.email, success: false, error: `Department update error: ${deptError.message}` });
+        } else {
+          results.push({ email: user.email, success: true, error: 'User already exists, department updated' });
+        }
+        continue;
+      }
+
       // Create user with admin API
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: user.email,
