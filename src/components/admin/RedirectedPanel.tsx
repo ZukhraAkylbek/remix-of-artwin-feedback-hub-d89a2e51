@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Feedback, Department, FeedbackStatus, FEEDBACK_TYPE_CONFIG, URGENCY_LEVEL_CONFIG, UrgencyLevel, DEPARTMENT_LABELS } from '@/types/feedback';
+import { Feedback, Department, FeedbackStatus, FEEDBACK_TYPE_CONFIG, DEPARTMENT_LABELS, URGENCY_LEVEL_CONFIG, UrgencyLevel } from '@/types/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Loader2, CheckCircle, ChevronRight, User, UserX, RefreshCw, AlertTriangle, Lightbulb, Heart, ArrowRightLeft, CalendarClock } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, ChevronRight, User, UserX, AlertTriangle, Lightbulb, Heart, ArrowRightLeft, CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { syncStatusesFromGoogleSheets, syncStatusesFromBitrix } from '@/lib/integrations';
-import { fetchEmployees, Employee } from '@/lib/database';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { fetchEmployees, Employee } from '@/lib/database';
 import {
   Table,
   TableBody,
@@ -18,11 +16,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-interface TicketListProps {
+interface RedirectedPanelProps {
   feedback: Feedback[];
   department: Department;
   onSelectTicket: (id: string) => void;
-  onRefresh: () => void;
 }
 
 const statusConfig: Record<FeedbackStatus, { label: string; icon: React.ReactNode; color: string }> = {
@@ -37,13 +34,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   gratitude: <Heart className="w-4 h-4" />,
 };
 
-// SSL and rukovodstvo sees all feedback from all departments
-const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl', 'rukovodstvo'];
-
-export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: TicketListProps) => {
-  const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
-  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
-  const [isSyncingBitrix, setIsSyncingBitrix] = useState(false);
+export const RedirectedPanel = ({ feedback, department, onSelectTicket }: RedirectedPanelProps) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   
   useEffect(() => {
@@ -53,69 +44,33 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
     };
     loadEmployees();
   }, []);
-  
-  // SSL sees all feedback, other departments see only their own
-  const departmentFeedback = GLOBAL_VIEW_DEPARTMENTS.includes(department)
-    ? feedback 
-    : feedback.filter(f => f.department === department);
-  const filteredFeedback = statusFilter === 'all' ? departmentFeedback : departmentFeedback.filter(f => f.status === statusFilter);
 
-  const handleSyncFromSheets = async () => {
-    setIsSyncingSheets(true);
-    const result = await syncStatusesFromGoogleSheets(department);
-    if (result.success && result.updatedCount > 0) {
-      toast.success(`Синхронизировано ${result.updatedCount} статусов`);
-      onRefresh();
-    } else {
-      toast.info('Все статусы актуальны');
-    }
-    setIsSyncingSheets(false);
-  };
-
-  const handleSyncFromBitrix = async () => {
-    setIsSyncingBitrix(true);
-    const result = await syncStatusesFromBitrix(department);
-    if (result.success && result.updatedCount > 0) {
-      toast.success(`Синхронизировано ${result.updatedCount} статусов`);
-      onRefresh();
-    } else {
-      toast.info('Все статусы актуальны');
-    }
-    setIsSyncingBitrix(false);
-  };
+  // Only show feedback that was redirected TO this department (has redirected_from set)
+  const redirectedFeedback = feedback.filter(f => 
+    f.department === department && f.redirectedFrom !== null
+  );
 
   const getEmployeeName = (id?: string) => {
-    if (!id) return '—';
-    return employees.find(e => e.id === id)?.name || '—';
+    if (!id) return 'Не назначен';
+    return employees.find(e => e.id === id)?.name || 'Не назначен';
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold mb-2">Обращения</h1>
-          <p className="text-muted-foreground">Всего {filteredFeedback.length} обращений</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={handleSyncFromSheets} disabled={isSyncingSheets}>
-            {isSyncingSheets ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-            Синхр. из таблицы
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleSyncFromBitrix} disabled={isSyncingBitrix}>
-            {isSyncingBitrix ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-            Синхр. из Bitrix
-          </Button>
-          {(['all', 'new', 'in_progress', 'resolved'] as const).map((status) => (
-            <Button key={status} variant={statusFilter === status ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter(status)}>
-              {status === 'all' ? 'Все' : statusConfig[status].label}
-            </Button>
-          ))}
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold mb-2 flex items-center gap-2">
+          <ArrowRightLeft className="w-6 h-6" />
+          Переадресованные
+        </h1>
+        <p className="text-muted-foreground">
+          Обращения, перенаправленные в ваш отдел ({redirectedFeedback.length})
+        </p>
       </div>
 
-      {filteredFeedback.length === 0 ? (
+      {redirectedFeedback.length === 0 ? (
         <div className="card-elevated p-12 text-center">
-          <p className="text-muted-foreground">Нет обращений</p>
+          <ArrowRightLeft className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+          <p className="text-muted-foreground">Нет переадресованных обращений</p>
         </div>
       ) : (
         <div className="card-elevated overflow-hidden">
@@ -125,6 +80,7 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                 <TableHead>Тип</TableHead>
                 <TableHead>Сообщение</TableHead>
                 <TableHead>Уровень</TableHead>
+                <TableHead>Из отдела</TableHead>
                 <TableHead>Ответственный</TableHead>
                 <TableHead>Дедлайн</TableHead>
                 <TableHead>Статус</TableHead>
@@ -132,10 +88,10 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFeedback.map((ticket) => {
+              {redirectedFeedback.map((ticket) => {
                 const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
                 const urgencyConfig = ticket.urgencyLevel ? URGENCY_LEVEL_CONFIG[ticket.urgencyLevel as UrgencyLevel] : URGENCY_LEVEL_CONFIG[1];
-                const isRedirected = ticket.redirectedFrom !== null && ticket.redirectedFrom !== undefined;
+                const fromDept = ticket.redirectedFrom ? DEPARTMENT_LABELS[ticket.redirectedFrom as Department] : '—';
                 
                 return (
                   <TableRow 
@@ -154,18 +110,10 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                     <TableCell>
                       <div className="max-w-xs">
                         <p className="truncate font-medium">{ticket.message.slice(0, 50)}...</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            {ticket.isAnonymous ? <UserX className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                            {ticket.isAnonymous ? 'Анонимно' : ticket.name}
-                          </span>
-                          {isRedirected && (
-                            <Badge variant="secondary" className="text-xs gap-1 h-5">
-                              <ArrowRightLeft className="w-3 h-3" />
-                              из {DEPARTMENT_LABELS[ticket.redirectedFrom as Department]}
-                            </Badge>
-                          )}
-                        </div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          {ticket.isAnonymous ? <UserX className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                          {ticket.isAnonymous ? 'Анонимно' : ticket.name}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -178,6 +126,12 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                         }}
                       >
                         {ticket.urgencyLevel || 1}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="gap-1">
+                        <ArrowRightLeft className="w-3 h-3" />
+                        {fromDept}
                       </Badge>
                     </TableCell>
                     <TableCell>

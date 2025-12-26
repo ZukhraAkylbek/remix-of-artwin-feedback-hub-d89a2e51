@@ -58,6 +58,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Дашборд', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'tickets', label: 'Обращения', icon: <MessageSquare className="w-5 h-5" /> },
+  { id: 'redirected', label: 'Переадресованные', icon: <ArrowLeftRight className="w-5 h-5" /> },
   { id: 'meetings', label: 'Собрания', icon: <CalendarCheck className="w-5 h-5" />, onlyForRukovodstvo: true },
   { id: 'employees', label: 'Сотрудники', icon: <Users className="w-5 h-5" /> },
   { id: 'reports', label: 'Отчёты', icon: <FileText className="w-5 h-5" /> },
