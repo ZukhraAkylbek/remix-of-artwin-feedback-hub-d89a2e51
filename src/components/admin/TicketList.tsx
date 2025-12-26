@@ -42,6 +42,7 @@ const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['ssl', 'rukovodstvo'];
 
 export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: TicketListProps) => {
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
+  const [levelFilter, setLevelFilter] = useState<UrgencyLevel | 'all'>('all');
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [isSyncingBitrix, setIsSyncingBitrix] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -58,7 +59,9 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
   const departmentFeedback = GLOBAL_VIEW_DEPARTMENTS.includes(department)
     ? feedback 
     : feedback.filter(f => f.department === department);
-  const filteredFeedback = statusFilter === 'all' ? departmentFeedback : departmentFeedback.filter(f => f.status === statusFilter);
+  
+  let filteredFeedback = statusFilter === 'all' ? departmentFeedback : departmentFeedback.filter(f => f.status === statusFilter);
+  filteredFeedback = levelFilter === 'all' ? filteredFeedback : filteredFeedback.filter(f => (f.urgencyLevel || 1) === levelFilter);
 
   const handleSyncFromSheets = async () => {
     setIsSyncingSheets(true);
@@ -105,12 +108,29 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
             {isSyncingBitrix ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
             Синхр. из Bitrix
           </Button>
-          {(['all', 'new', 'in_progress', 'resolved'] as const).map((status) => (
-            <Button key={status} variant={statusFilter === status ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter(status)}>
-              {status === 'all' ? 'Все' : statusConfig[status].label}
-            </Button>
-          ))}
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-sm text-muted-foreground mr-2">Статус:</span>
+        {(['all', 'new', 'in_progress', 'resolved'] as const).map((status) => (
+          <Button key={status} variant={statusFilter === status ? 'default' : 'outline'} size="sm" onClick={() => setStatusFilter(status)}>
+            {status === 'all' ? 'Все' : statusConfig[status].label}
+          </Button>
+        ))}
+        
+        <span className="text-sm text-muted-foreground ml-4 mr-2">Уровень:</span>
+        {(['all', 1, 2, 3, 4] as const).map((level) => (
+          <Button 
+            key={level} 
+            variant={levelFilter === level ? 'default' : 'outline'} 
+            size="sm" 
+            onClick={() => setLevelFilter(level)}
+            style={level !== 'all' && levelFilter === level ? { backgroundColor: URGENCY_LEVEL_CONFIG[level as UrgencyLevel].color } : {}}
+          >
+            {level === 'all' ? 'Все' : level}
+          </Button>
+        ))}
       </div>
 
       {filteredFeedback.length === 0 ? (

@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Feedback, FeedbackStatus, Comment, Department, FEEDBACK_TYPE_CONFIG, FeedbackType, RESIDENTIAL_OBJECTS, URGENCY_LEVEL_CONFIG, UrgencyLevel, DEPARTMENT_LABELS } from '@/types/feedback';
+import { Feedback, FeedbackStatus, Department, FEEDBACK_TYPE_CONFIG, FeedbackType, RESIDENTIAL_OBJECTS, URGENCY_LEVEL_CONFIG, UrgencyLevel, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { 
   ArrowLeft, 
   Sparkles, 
-  Send,
   Clock,
   Loader2,
   CheckCircle,
@@ -15,12 +13,10 @@ import {
   UserX,
   Mail,
   Paperclip,
-  MessageSquare,
   Trash2,
   Plus,
   AlertTriangle,
   Lightbulb,
-  Shield,
   Heart,
   ExternalLink,
   Building,
@@ -93,7 +89,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [autoResponse, setAutoResponse] = useState('');
-  const [newComment, setNewComment] = useState('');
+  
   const [aiAnalysis, setAiAnalysis] = useState(ticket.aiAnalysis);
   const [currentStatus, setCurrentStatus] = useState(ticket.status);
   const [currentSubStatus, setCurrentSubStatus] = useState<string | null>(ticket.subStatus || null);
@@ -236,11 +232,6 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
     setIsDeleting(false);
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    setNewComment('');
-    toast.success('Комментарий добавлен');
-  };
 
   const handleUrgencyChange = async (level: string) => {
     const newLevel = parseInt(level) as UrgencyLevel;
@@ -377,31 +368,6 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
             </div>
           )}
 
-          <div className="card-elevated p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <MessageSquare className="w-5 h-5" />
-              <h3 className="font-semibold">Комментарии</h3>
-            </div>
-            
-            {ticket.comments.length > 0 && (
-              <div className="space-y-3 mb-4">
-                {ticket.comments.map((comment) => (
-                  <div key={comment.id} className="p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium text-sm">{comment.author}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleString('ru')}</span>
-                    </div>
-                    <p className="text-sm">{comment.text}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Добавить комментарий..." className="min-h-[80px]" />
-              <Button onClick={handleAddComment} size="icon" className="shrink-0"><Send className="w-4 h-4" /></Button>
-            </div>
-          </div>
         </div>
 
         <div className="space-y-6">
