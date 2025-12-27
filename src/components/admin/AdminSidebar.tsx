@@ -20,7 +20,7 @@ import {
   AlertTriangle,
   Building2,
   Lightbulb,
-  Crown,
+  Briefcase,
   CalendarCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -45,7 +45,7 @@ const departmentIcons: Record<Department, React.ReactNode> = {
   legal: <Scale className="w-5 h-5" />,
   finance: <Banknote className="w-5 h-5" />,
   security: <Shield className="w-5 h-5" />,
-  rukovodstvo: <Crown className="w-5 h-5" />,
+  rukovodstvo: <Briefcase className="w-5 h-5" />,
 };
 
 interface MenuItem {
