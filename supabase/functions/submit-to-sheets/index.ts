@@ -14,15 +14,18 @@ interface SheetsRequest {
 }
 
 async function getAccessToken(serviceAccountEmail: string, privateKey: string): Promise<string> {
-  if (!serviceAccountEmail || !privateKey) {
+  const normalizedEmail = (serviceAccountEmail || '').trim();
+  const normalizedKey = (privateKey || '').trim();
+
+  if (!normalizedEmail || !normalizedKey) {
     throw new Error('Missing Google service account credentials');
   }
 
   // Handle different formats of private key storage
   // The key might have literal \n or actual newlines
-  let processedKey = privateKey.replace(/\\n/g, '\n');
-  
-  console.log('Service account email:', serviceAccountEmail);
+  let processedKey = normalizedKey.replace(/\\n/g, '\n');
+
+  console.log('Service account email:', normalizedEmail);
   console.log('Private key starts with:', processedKey.substring(0, 50));
 
   const header = {
@@ -32,7 +35,7 @@ async function getAccessToken(serviceAccountEmail: string, privateKey: string): 
 
   const now = Math.floor(Date.now() / 1000);
   const claim = {
-    iss: serviceAccountEmail,
+    iss: normalizedEmail,
     scope: 'https://www.googleapis.com/auth/spreadsheets',
     aud: 'https://oauth2.googleapis.com/token',
     exp: now + 3600,
