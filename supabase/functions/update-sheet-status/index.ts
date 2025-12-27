@@ -8,8 +8,11 @@ const corsHeaders = {
 interface UpdateRequest {
   spreadsheetId: string;
   feedbackId: string;
-  newStatus: string;
+  newStatus?: string;
   newSubStatus?: string;
+  deadline?: string;
+  urgencyLevel?: string;
+  assignedTo?: string;
   serviceAccountEmail: string;
   privateKey: string;
 }
@@ -88,14 +91,24 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetId, feedbackId, newStatus, newSubStatus, serviceAccountEmail, privateKey }: UpdateRequest = await req.json();
+    const { 
+      spreadsheetId, 
+      feedbackId, 
+      newStatus, 
+      newSubStatus, 
+      deadline,
+      urgencyLevel,
+      assignedTo,
+      serviceAccountEmail, 
+      privateKey 
+    }: UpdateRequest = await req.json();
 
-    console.log('Update status request:', { spreadsheetId, feedbackId, newStatus, newSubStatus });
+    console.log('Update request:', { spreadsheetId, feedbackId, newStatus, newSubStatus, deadline, urgencyLevel, assignedTo });
 
     const accessToken = await getAccessToken(serviceAccountEmail, privateKey);
 
     // Get all data from column A (IDs) to find the row
-    const getUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:K?majorDimension=ROWS`;
+    const getUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/A:P?majorDimension=ROWS`;
     
     const getResponse = await fetch(getUrl, {
       method: 'GET',
@@ -126,28 +139,73 @@ serve(async (req) => {
       );
     }
 
-    // Update the status cell (column J) and sub-status (column K)
-    const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/J${rowIndex}:K${rowIndex}?valueInputOption=RAW`;
-    
-    const updateResponse = await fetch(updateUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ values: [[newStatus, newSubStatus || '']] }),
-    });
+    const currentRow = rows[rowIndex - 1] || [];
+    const updates: { range: string; values: string[][] }[] = [];
 
-    if (!updateResponse.ok) {
-      const errorText = await updateResponse.text();
-      throw new Error(`Failed to update: ${errorText}`);
+    // Update status and sub-status (columns J and K) if provided
+    if (newStatus !== undefined) {
+      updates.push({
+        range: `J${rowIndex}:K${rowIndex}`,
+        values: [[newStatus, newSubStatus || '']]
+      });
     }
 
-    const result = await updateResponse.json();
-    console.log('Status updated in sheet:', result);
+    // Update deadline (column N) if provided
+    if (deadline !== undefined) {
+      updates.push({
+        range: `N${rowIndex}`,
+        values: [[deadline]]
+      });
+    }
+
+    // Update urgency level (column O) if provided
+    if (urgencyLevel !== undefined) {
+      updates.push({
+        range: `O${rowIndex}`,
+        values: [[urgencyLevel]]
+      });
+    }
+
+    // Update assigned to (column P) if provided
+    if (assignedTo !== undefined) {
+      updates.push({
+        range: `P${rowIndex}`,
+        values: [[assignedTo]]
+      });
+    }
+
+    if (updates.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'No updates to apply' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Apply all updates
+    for (const update of updates) {
+      const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(update.range)}?valueInputOption=RAW`;
+      
+      const updateResponse = await fetch(updateUrl, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ values: update.values }),
+      });
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error(`Failed to update ${update.range}:`, errorText);
+      } else {
+        console.log(`Updated ${update.range} successfully`);
+      }
+    }
+
+    console.log('All updates applied for row:', rowIndex);
 
     return new Response(
-      JSON.stringify({ success: true, rowIndex }),
+      JSON.stringify({ success: true, rowIndex, updatesCount: updates.length }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: unknown) {
