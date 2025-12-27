@@ -27,7 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
 import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback } from '@/lib/database';
-import { updateStatusInGoogleSheets } from '@/lib/integrations';
+import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets } from '@/lib/integrations';
 import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -201,6 +201,8 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       setAssignedEmployee(actualId || undefined);
       toast.success('Ответственный назначен');
       onUpdate();
+      // Sync to Google Sheets
+      await updateAssignedInGoogleSheets(ticket.id, emp?.name || null, ticket.department as Department);
     }
   };
 
@@ -213,6 +215,9 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       await logAdminAction('set_deadline', 'feedback', ticket.id, { deadline: ticket.deadline }, { deadline: deadlineStr });
       toast.success(date ? 'Дедлайн установлен' : 'Дедлайн снят');
       onUpdate();
+      // Sync to Google Sheets
+      const formattedDeadline = date ? format(date, 'dd.MM.yyyy', { locale: ru }) : '';
+      await updateDeadlineInGoogleSheets(ticket.id, formattedDeadline, ticket.department as Department);
     } else {
       toast.error('Ошибка сохранения дедлайна');
     }
@@ -241,6 +246,8 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       setUrgencyLevel(newLevel);
       toast.success('Уровень обновлён');
       onUpdate();
+      // Sync to Google Sheets
+      await updateUrgencyInGoogleSheets(ticket.id, newLevel, ticket.department as Department);
     } else {
       toast.error('Ошибка обновления уровня');
     }

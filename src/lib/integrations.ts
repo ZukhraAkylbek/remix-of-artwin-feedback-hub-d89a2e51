@@ -124,6 +124,121 @@ export const updateStatusInGoogleSheets = async (
   }
 };
 
+// Update deadline in Google Sheets
+export const updateDeadlineInGoogleSheets = async (
+  feedbackId: string,
+  deadline: string | null,
+  department: Department
+): Promise<boolean> => {
+  const deptSettings = await getDepartmentSettings(department);
+  
+  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
+    return false;
+  }
+
+  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('update-sheet-status', {
+      body: {
+        spreadsheetId,
+        feedbackId,
+        deadline: deadline || '',
+        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
+        privateKey: deptSettings.googlePrivateKey
+      }
+    });
+
+    if (error) {
+      console.error('Update sheet deadline error:', error);
+      return false;
+    }
+    return data?.success === true;
+  } catch (error) {
+    console.error('Error updating sheet deadline:', error);
+    return false;
+  }
+};
+
+// Update urgency level in Google Sheets
+export const updateUrgencyInGoogleSheets = async (
+  feedbackId: string,
+  urgencyLevel: number,
+  department: Department
+): Promise<boolean> => {
+  const deptSettings = await getDepartmentSettings(department);
+  
+  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
+    return false;
+  }
+
+  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
+  
+  const urgencyLabels: Record<number, string> = {
+    1: 'Обычный',
+    2: 'Средний',
+    3: 'Высокий',
+    4: 'Критический'
+  };
+
+  try {
+    const { data, error } = await supabase.functions.invoke('update-sheet-status', {
+      body: {
+        spreadsheetId,
+        feedbackId,
+        urgencyLevel: urgencyLabels[urgencyLevel] || 'Обычный',
+        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
+        privateKey: deptSettings.googlePrivateKey
+      }
+    });
+
+    if (error) {
+      console.error('Update sheet urgency error:', error);
+      return false;
+    }
+    return data?.success === true;
+  } catch (error) {
+    console.error('Error updating sheet urgency:', error);
+    return false;
+  }
+};
+
+// Update assigned employee in Google Sheets
+export const updateAssignedInGoogleSheets = async (
+  feedbackId: string,
+  assignedToName: string | null,
+  department: Department
+): Promise<boolean> => {
+  const deptSettings = await getDepartmentSettings(department);
+  
+  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
+    return false;
+  }
+
+  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('update-sheet-status', {
+      body: {
+        spreadsheetId,
+        feedbackId,
+        assignedTo: assignedToName || '',
+        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
+        privateKey: deptSettings.googlePrivateKey
+      }
+    });
+
+    if (error) {
+      console.error('Update sheet assigned error:', error);
+      return false;
+    }
+    return data?.success === true;
+  } catch (error) {
+    console.error('Error updating sheet assigned:', error);
+    return false;
+  }
+};
+
 // Sync statuses from Google Sheets to database
 export const syncStatusesFromGoogleSheets = async (department: Department): Promise<{ success: boolean; updatedCount: number }> => {
   const deptSettings = await getDepartmentSettings(department);
