@@ -3,22 +3,12 @@ import { getDepartmentSettings, getDepartmentName } from './departmentSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchAllFeedback, fetchEmployees } from './database';
 
+// Send to Telegram for department AND Rukovodstvo
 export const sendToTelegram = async (feedback: Feedback): Promise<boolean> => {
   const deptSettings = await getDepartmentSettings(feedback.department);
   
-  console.log('Telegram dept settings:', { 
-    department: feedback.department,
-    hasBotToken: !!deptSettings?.telegramBotToken, 
-    hasChatId: !!deptSettings?.telegramChatId 
-  });
-  
-  if (!deptSettings?.telegramBotToken || !deptSettings?.telegramChatId) {
-    console.log('Telegram credentials not configured for department:', feedback.department);
-    return false;
-  }
-
   const typeConfig = FEEDBACK_TYPE_CONFIG[feedback.type];
-const typeEmojis: Record<string, string> = {
+  const typeEmojis: Record<string, string> = {
     remark: '🔴',
     suggestion: '🔵',
     gratitude: '🟢',
@@ -39,26 +29,62 @@ ${emoji} Новое обращение
 📝 Сообщение: ${feedback.message.slice(0, 200)}${feedback.message.length > 200 ? '...' : ''}
 `;
 
-  try {
-    console.log('Sending to Telegram...');
-    const response = await fetch(`https://api.telegram.org/bot${deptSettings.telegramBotToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: deptSettings.telegramChatId,
-        text: message,
-        parse_mode: 'HTML'
-      })
-    });
-    
-    const result = await response.json();
-    console.log('Telegram response:', result);
-    
-    return response.ok;
-  } catch (error) {
-    console.error('Telegram error:', error);
-    return false;
+  let deptSuccess = false;
+  let rukovodstvoSuccess = false;
+
+  // Send to department's Telegram
+  if (deptSettings?.telegramBotToken && deptSettings?.telegramChatId) {
+    try {
+      console.log('Sending to department Telegram...');
+      const response = await fetch(`https://api.telegram.org/bot${deptSettings.telegramBotToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: deptSettings.telegramChatId,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      });
+      
+      const result = await response.json();
+      console.log('Department Telegram response:', result);
+      deptSuccess = response.ok;
+    } catch (error) {
+      console.error('Department Telegram error:', error);
+    }
+  } else {
+    console.log('Telegram credentials not configured for department:', feedback.department);
   }
+
+  // Also send to Rukovodstvo's Telegram (if different department)
+  if (feedback.department !== 'rukovodstvo') {
+    const rukovodstvoSettings = await getDepartmentSettings('rukovodstvo');
+    
+    if (rukovodstvoSettings?.telegramBotToken && rukovodstvoSettings?.telegramChatId) {
+      try {
+        console.log('Sending to Rukovodstvo Telegram...');
+        const response = await fetch(`https://api.telegram.org/bot${rukovodstvoSettings.telegramBotToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: rukovodstvoSettings.telegramChatId,
+            text: message,
+            parse_mode: 'HTML'
+          })
+        });
+        
+        const result = await response.json();
+        console.log('Rukovodstvo Telegram response:', result);
+        rukovodstvoSuccess = response.ok;
+      } catch (error) {
+        console.error('Rukovodstvo Telegram error:', error);
+      }
+    } else {
+      console.log('Telegram credentials not configured for Rukovodstvo');
+    }
+  }
+
+  return deptSuccess || rukovodstvoSuccess;
 };
 
 const getRoleName = (role: string): string => {
@@ -84,52 +110,21 @@ export const getStatusName = (status: string): string => {
   return names[status] || status;
 };
 
-// Update status in Google Sheets when changed in admin
-export const updateStatusInGoogleSheets = async (
-  feedbackId: string, 
-  newStatus: string,
+// Extract spreadsheet ID from URL or plain ID
+const extractSpreadsheetId = (input: string): string => {
+  const urlMatch = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (urlMatch) {
+    return urlMatch[1];
+  }
+  const cleanedId = input.split('/')[0].split('?')[0].split('#')[0];
+  return cleanedId || input;
+};
+
+// Helper to update sheet for a specific department
+const updateSheetForDepartment = async (
   department: Department,
-  subStatus?: string | null
-): Promise<boolean> => {
-  const deptSettings = await getDepartmentSettings(department);
-  
-  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
-    console.log('Google Sheets not configured for department:', department);
-    return false;
-  }
-
-  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
-
-  try {
-    const { data, error } = await supabase.functions.invoke('update-sheet-status', {
-      body: {
-        spreadsheetId,
-        feedbackId,
-        newStatus: getStatusName(newStatus),
-        newSubStatus: subStatus || '',
-        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
-        privateKey: deptSettings.googlePrivateKey
-      }
-    });
-
-    if (error) {
-      console.error('Update sheet status error:', error);
-      return false;
-    }
-
-    console.log('Sheet status update result:', data);
-    return data?.success === true;
-  } catch (error) {
-    console.error('Error updating sheet status:', error);
-    return false;
-  }
-};
-
-// Update deadline in Google Sheets
-export const updateDeadlineInGoogleSheets = async (
   feedbackId: string,
-  deadline: string | null,
-  department: Department
+  updateData: Record<string, any>
 ): Promise<boolean> => {
   const deptSettings = await getDepartmentSettings(department);
   
@@ -144,106 +139,27 @@ export const updateDeadlineInGoogleSheets = async (
       body: {
         spreadsheetId,
         feedbackId,
-        deadline: deadline || '',
+        ...updateData,
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
         privateKey: deptSettings.googlePrivateKey
       }
     });
 
     if (error) {
-      console.error('Update sheet deadline error:', error);
+      console.error(`Update sheet error for ${department}:`, error);
       return false;
     }
     return data?.success === true;
   } catch (error) {
-    console.error('Error updating sheet deadline:', error);
+    console.error(`Error updating sheet for ${department}:`, error);
     return false;
   }
 };
 
-// Update urgency level in Google Sheets
-export const updateUrgencyInGoogleSheets = async (
-  feedbackId: string,
-  urgencyLevel: number,
-  department: Department
-): Promise<boolean> => {
-  const deptSettings = await getDepartmentSettings(department);
-  
-  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
-    return false;
-  }
-
-  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
-  
-  const urgencyLabels: Record<number, string> = {
-    1: 'Обычный',
-    2: 'Средний',
-    3: 'Высокий',
-    4: 'Критический'
-  };
-
-  try {
-    const { data, error } = await supabase.functions.invoke('update-sheet-status', {
-      body: {
-        spreadsheetId,
-        feedbackId,
-        urgencyLevel: urgencyLabels[urgencyLevel] || 'Обычный',
-        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
-        privateKey: deptSettings.googlePrivateKey
-      }
-    });
-
-    if (error) {
-      console.error('Update sheet urgency error:', error);
-      return false;
-    }
-    return data?.success === true;
-  } catch (error) {
-    console.error('Error updating sheet urgency:', error);
-    return false;
-  }
-};
-
-// Update assigned employee in Google Sheets
-export const updateAssignedInGoogleSheets = async (
-  feedbackId: string,
-  assignedToName: string | null,
-  department: Department
-): Promise<boolean> => {
-  const deptSettings = await getDepartmentSettings(department);
-  
-  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
-    return false;
-  }
-
-  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
-
-  try {
-    const { data, error } = await supabase.functions.invoke('update-sheet-status', {
-      body: {
-        spreadsheetId,
-        feedbackId,
-        assignedTo: assignedToName || '',
-        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
-        privateKey: deptSettings.googlePrivateKey
-      }
-    });
-
-    if (error) {
-      console.error('Update sheet assigned error:', error);
-      return false;
-    }
-    return data?.success === true;
-  } catch (error) {
-    console.error('Error updating sheet assigned:', error);
-    return false;
-  }
-};
-
-// Delete row from Google Sheets
-export const deleteFromGoogleSheets = async (
-  feedbackId: string,
-  department: Department
+// Helper to delete from sheet for a specific department
+const deleteFromSheetForDepartment = async (
+  department: Department,
+  feedbackId: string
 ): Promise<boolean> => {
   const deptSettings = await getDepartmentSettings(department);
   
@@ -264,15 +180,114 @@ export const deleteFromGoogleSheets = async (
     });
 
     if (error) {
-      console.error('Delete from sheet error:', error);
+      console.error(`Delete from sheet error for ${department}:`, error);
       return false;
     }
-    console.log('Delete from sheet result:', data);
     return data?.success === true;
   } catch (error) {
-    console.error('Error deleting from sheet:', error);
+    console.error(`Error deleting from sheet for ${department}:`, error);
     return false;
   }
+};
+
+// Update status in Google Sheets for BOTH department and Rukovodstvo
+export const updateStatusInGoogleSheets = async (
+  feedbackId: string, 
+  newStatus: string,
+  department: Department,
+  subStatus?: string | null
+): Promise<boolean> => {
+  const updateData = {
+    newStatus: getStatusName(newStatus),
+    newSubStatus: subStatus || ''
+  };
+
+  // Update department's sheet
+  const deptSuccess = await updateSheetForDepartment(department, feedbackId, updateData);
+  
+  // Also update Rukovodstvo's sheet
+  let rukovodstvoSuccess = false;
+  if (department !== 'rukovodstvo') {
+    rukovodstvoSuccess = await updateSheetForDepartment('rukovodstvo', feedbackId, updateData);
+  }
+
+  return deptSuccess || rukovodstvoSuccess;
+};
+
+// Update deadline in Google Sheets for BOTH department and Rukovodstvo
+export const updateDeadlineInGoogleSheets = async (
+  feedbackId: string,
+  deadline: string | null,
+  department: Department
+): Promise<boolean> => {
+  const updateData = { deadline: deadline || '' };
+
+  const deptSuccess = await updateSheetForDepartment(department, feedbackId, updateData);
+  
+  let rukovodstvoSuccess = false;
+  if (department !== 'rukovodstvo') {
+    rukovodstvoSuccess = await updateSheetForDepartment('rukovodstvo', feedbackId, updateData);
+  }
+
+  return deptSuccess || rukovodstvoSuccess;
+};
+
+// Update urgency level in Google Sheets for BOTH department and Rukovodstvo
+export const updateUrgencyInGoogleSheets = async (
+  feedbackId: string,
+  urgencyLevel: number,
+  department: Department
+): Promise<boolean> => {
+  const urgencyLabels: Record<number, string> = {
+    1: 'Обычный',
+    2: 'Средний',
+    3: 'Высокий',
+    4: 'Критический'
+  };
+
+  const updateData = { urgencyLevel: urgencyLabels[urgencyLevel] || 'Обычный' };
+
+  const deptSuccess = await updateSheetForDepartment(department, feedbackId, updateData);
+  
+  let rukovodstvoSuccess = false;
+  if (department !== 'rukovodstvo') {
+    rukovodstvoSuccess = await updateSheetForDepartment('rukovodstvo', feedbackId, updateData);
+  }
+
+  return deptSuccess || rukovodstvoSuccess;
+};
+
+// Update assigned employee in Google Sheets for BOTH department and Rukovodstvo
+export const updateAssignedInGoogleSheets = async (
+  feedbackId: string,
+  assignedToName: string | null,
+  department: Department
+): Promise<boolean> => {
+  const updateData = { assignedTo: assignedToName || '' };
+
+  const deptSuccess = await updateSheetForDepartment(department, feedbackId, updateData);
+  
+  let rukovodstvoSuccess = false;
+  if (department !== 'rukovodstvo') {
+    rukovodstvoSuccess = await updateSheetForDepartment('rukovodstvo', feedbackId, updateData);
+  }
+
+  return deptSuccess || rukovodstvoSuccess;
+};
+
+// Delete row from Google Sheets for BOTH department and Rukovodstvo
+export const deleteFromGoogleSheets = async (
+  feedbackId: string,
+  department: Department
+): Promise<boolean> => {
+  const deptSuccess = await deleteFromSheetForDepartment(department, feedbackId);
+  
+  let rukovodstvoSuccess = false;
+  if (department !== 'rukovodstvo') {
+    rukovodstvoSuccess = await deleteFromSheetForDepartment('rukovodstvo', feedbackId);
+  }
+
+  return deptSuccess || rukovodstvoSuccess;
 };
 
 // Sync statuses from Google Sheets to database
@@ -308,22 +323,10 @@ export const syncStatusesFromGoogleSheets = async (department: Department): Prom
   }
 };
 
-// Extract spreadsheet ID from URL or plain ID
-const extractSpreadsheetId = (input: string): string => {
-  // If it's a full URL, extract the ID
-  const urlMatch = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (urlMatch) {
-    return urlMatch[1];
-  }
-  // If it contains /edit or other URL parts, try to clean it
-  const cleanedId = input.split('/')[0].split('?')[0].split('#')[0];
-  return cleanedId || input;
-};
-
+// Submit to Google Sheets - sends to BOTH department AND Rukovodstvo
 export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> => {
   const deptSettings = await getDepartmentSettings(feedback.department);
   
-  // Get urgency level label
   const getUrgencyLabel = (level?: number): string => {
     const labels: Record<number, string> = {
       1: 'Обычный',
@@ -338,24 +341,23 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
     ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.nameKey || feedback.objectCode
     : '';
 
-  // Prepare row data once
   const rowData = [
-    feedback.id,                                        // A - ID
-    feedback.createdAt,                                 // B - Дата
-    getRoleName(feedback.userRole),                     // C - Роль
-    getTypeName(feedback.type),                         // D - Тип
-    feedback.isAnonymous ? 'Анонимно' : feedback.name,  // E - Имя
-    feedback.contact || '',                             // F - Контакт
-    feedback.message,                                   // G - Сообщение
-    objectName,                                         // H - Объект
-    getDepartmentName(feedback.department),             // I - Отдел (целевой департамент)
-    getStatusName(feedback.status),                     // J - Статус
-    feedback.subStatus || '',                           // K - Подстатус
-    feedback.attachmentUrl || '',                       // L - Файл
-    feedback.bitrixTaskId || '',                        // M - Bitrix ID
-    feedback.deadline || '',                            // N - Дедлайн
-    getUrgencyLabel(feedback.urgencyLevel),             // O - Уровень срочности
-    feedback.assignedToName || ''                       // P - Ответственный
+    feedback.id,
+    feedback.createdAt,
+    getRoleName(feedback.userRole),
+    getTypeName(feedback.type),
+    feedback.isAnonymous ? 'Анонимно' : feedback.name,
+    feedback.contact || '',
+    feedback.message,
+    objectName,
+    getDepartmentName(feedback.department),
+    getStatusName(feedback.status),
+    feedback.subStatus || '',
+    feedback.attachmentUrl || '',
+    feedback.bitrixTaskId || '',
+    feedback.deadline || '',
+    getUrgencyLabel(feedback.urgencyLevel),
+    feedback.assignedToName || ''
   ];
 
   let departmentSuccess = false;
@@ -425,7 +427,6 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
     }
   }
 
-  // Return true if at least one succeeded
   return departmentSuccess || rukovodstvoSuccess;
 };
 
@@ -516,7 +517,6 @@ export const syncAllToRukovodstvoSheets = async (): Promise<{ success: boolean; 
 
   const spreadsheetId = extractSpreadsheetId(rukovodstvoSettings.googleSheetsId);
   
-  // Fetch all feedback
   const allFeedback = await fetchAllFeedback();
   const employees = await fetchEmployees();
   
