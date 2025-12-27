@@ -190,10 +190,21 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
   try {
     console.log('Sending to Google Sheets:', { spreadsheetId, department: feedback.department });
     
+    // Get urgency level label
+    const getUrgencyLabel = (level?: number): string => {
+      const labels: Record<number, string> = {
+        1: 'Обычный',
+        2: 'Средний',
+        3: 'Высокий',
+        4: 'Критический'
+      };
+      return labels[level || 1] || 'Обычный';
+    };
+    
     const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
       body: {
         spreadsheetId,
-        range: 'A:M',
+        range: 'A:P',
         values: [[
           feedback.id,
           feedback.createdAt,
@@ -207,7 +218,9 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
           getStatusName(feedback.status),
           feedback.subStatus || '',
           feedback.attachmentUrl || '',
-          feedback.deadline || ''
+          feedback.deadline || '',
+          getUrgencyLabel(feedback.urgencyLevel),
+          feedback.assignedToName || ''
         ]],
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
         privateKey: deptSettings.googlePrivateKey

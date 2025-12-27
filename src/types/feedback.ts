@@ -110,6 +110,7 @@ export interface Feedback {
   attachmentUrl?: string;
   attachmentName?: string;
   assignedTo?: string;
+  assignedToName?: string;
   deadline?: string;
   aiAnalysis?: AIAnalysis;
   comments: Comment[];
