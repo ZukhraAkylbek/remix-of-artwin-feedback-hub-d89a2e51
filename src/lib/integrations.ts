@@ -1,6 +1,7 @@
 import { Feedback, Department, FEEDBACK_TYPE_CONFIG, RESIDENTIAL_OBJECTS } from '@/types/feedback';
 import { getDepartmentSettings, getDepartmentName } from './departmentSettings';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllFeedback, fetchEmployees } from './database';
 
 export const sendToTelegram = async (feedback: Feedback): Promise<boolean> => {
   const deptSettings = await getDepartmentSettings(feedback.department);
@@ -502,6 +503,89 @@ export const syncStatusesFromBitrix = async (department: Department): Promise<{ 
 // Get sub-status display name
 export const getSubStatusName = (subStatus: string | null): string => {
   return subStatus || '';
+};
+
+// Sync all existing feedback to Rukovodstvo Google Sheets
+export const syncAllToRukovodstvoSheets = async (): Promise<{ success: boolean; syncedCount: number; errors: number }> => {
+  const rukovodstvoSettings = await getDepartmentSettings('rukovodstvo');
+  
+  if (!rukovodstvoSettings?.googleSheetsId || !rukovodstvoSettings?.googleServiceAccountEmail || !rukovodstvoSettings?.googlePrivateKey) {
+    console.log('Google Sheets not configured for Rukovodstvo');
+    return { success: false, syncedCount: 0, errors: 0 };
+  }
+
+  const spreadsheetId = extractSpreadsheetId(rukovodstvoSettings.googleSheetsId);
+  
+  // Fetch all feedback
+  const allFeedback = await fetchAllFeedback();
+  const employees = await fetchEmployees();
+  
+  const getUrgencyLabel = (level?: number): string => {
+    const labels: Record<number, string> = {
+      1: 'Обычный',
+      2: 'Средний',
+      3: 'Высокий',
+      4: 'Критический'
+    };
+    return labels[level || 1] || 'Обычный';
+  };
+
+  let syncedCount = 0;
+  let errors = 0;
+
+  for (const feedback of allFeedback) {
+    const objectName = feedback.objectCode 
+      ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.nameKey || feedback.objectCode
+      : '';
+    
+    const assignedEmployee = feedback.assignedTo 
+      ? employees.find(e => e.id === feedback.assignedTo)?.name || ''
+      : '';
+
+    const rowData = [
+      feedback.id,
+      feedback.createdAt,
+      getRoleName(feedback.userRole),
+      getTypeName(feedback.type),
+      feedback.isAnonymous ? 'Анонимно' : feedback.name,
+      feedback.contact || '',
+      feedback.message,
+      objectName,
+      getDepartmentName(feedback.department),
+      getStatusName(feedback.status),
+      feedback.subStatus || '',
+      feedback.attachmentUrl || '',
+      feedback.bitrixTaskId || '',
+      feedback.deadline || '',
+      getUrgencyLabel(feedback.urgencyLevel),
+      assignedEmployee
+    ];
+
+    try {
+      const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
+        body: {
+          spreadsheetId,
+          range: 'A:P',
+          values: [rowData],
+          serviceAccountEmail: rukovodstvoSettings.googleServiceAccountEmail,
+          privateKey: rukovodstvoSettings.googlePrivateKey
+        }
+      });
+
+      if (error || !data?.success) {
+        console.error('Error syncing feedback:', feedback.id, error);
+        errors++;
+      } else {
+        syncedCount++;
+      }
+    } catch (error) {
+      console.error('Error syncing feedback:', feedback.id, error);
+      errors++;
+    }
+  }
+
+  console.log(`Synced ${syncedCount}/${allFeedback.length} feedback items to Rukovodstvo sheets`);
+  return { success: errors === 0, syncedCount, errors };
 };
 
 export { getDepartmentName };
