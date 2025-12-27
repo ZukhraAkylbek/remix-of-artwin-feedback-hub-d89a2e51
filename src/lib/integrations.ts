@@ -239,6 +239,41 @@ export const updateAssignedInGoogleSheets = async (
   }
 };
 
+// Delete row from Google Sheets
+export const deleteFromGoogleSheets = async (
+  feedbackId: string,
+  department: Department
+): Promise<boolean> => {
+  const deptSettings = await getDepartmentSettings(department);
+  
+  if (!deptSettings?.googleSheetsId || !deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
+    return false;
+  }
+
+  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('delete-from-sheet', {
+      body: {
+        spreadsheetId,
+        feedbackId,
+        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
+        privateKey: deptSettings.googlePrivateKey
+      }
+    });
+
+    if (error) {
+      console.error('Delete from sheet error:', error);
+      return false;
+    }
+    console.log('Delete from sheet result:', data);
+    return data?.success === true;
+  } catch (error) {
+    console.error('Error deleting from sheet:', error);
+    return false;
+  }
+};
+
 // Sync statuses from Google Sheets to database
 export const syncStatusesFromGoogleSheets = async (department: Department): Promise<{ success: boolean; updatedCount: number }> => {
   const deptSettings = await getDepartmentSettings(department);

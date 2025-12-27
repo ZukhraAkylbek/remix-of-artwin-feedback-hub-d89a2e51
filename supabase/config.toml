@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.sync-bitrix-status]
 verify_jwt = false
+
+[functions.delete-from-sheet]
+verify_jwt = false
