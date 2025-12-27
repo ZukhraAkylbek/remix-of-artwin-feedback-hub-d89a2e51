@@ -206,21 +206,22 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
         spreadsheetId,
         range: 'A:P',
         values: [[
-          feedback.id,
-          feedback.createdAt,
-          getRoleName(feedback.userRole),
-          getTypeName(feedback.type),
-          feedback.isAnonymous ? 'Анонимно' : feedback.name,
-          feedback.contact || '',
-          feedback.message,
-          objectName,
-          getDepartmentName(feedback.department),
-          getStatusName(feedback.status),
-          feedback.subStatus || '',
-          feedback.attachmentUrl || '',
-          feedback.deadline || '',
-          getUrgencyLabel(feedback.urgencyLevel),
-          feedback.assignedToName || ''
+          feedback.id,                                        // A - ID
+          feedback.createdAt,                                 // B - Дата
+          getRoleName(feedback.userRole),                     // C - Роль
+          getTypeName(feedback.type),                         // D - Тип
+          feedback.isAnonymous ? 'Анонимно' : feedback.name,  // E - Имя
+          feedback.contact || '',                             // F - Контакт
+          feedback.message,                                   // G - Сообщение
+          objectName,                                         // H - Объект
+          getDepartmentName(feedback.department),             // I - Отдел
+          getStatusName(feedback.status),                     // J - Статус
+          feedback.subStatus || '',                           // K - Подстатус
+          feedback.attachmentUrl || '',                       // L - Файл
+          feedback.bitrixTaskId || '',                        // M - Bitrix ID
+          feedback.deadline || '',                            // N - Дедлайн
+          getUrgencyLabel(feedback.urgencyLevel),             // O - Уровень срочности
+          feedback.assignedToName || ''                       // P - Ответственный
         ]],
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
         privateKey: deptSettings.googlePrivateKey
