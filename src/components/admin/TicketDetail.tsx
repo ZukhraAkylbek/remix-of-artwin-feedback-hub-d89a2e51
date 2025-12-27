@@ -27,7 +27,7 @@ import {
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
 import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback } from '@/lib/database';
-import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets } from '@/lib/integrations';
+import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets, deleteFromGoogleSheets } from '@/lib/integrations';
 import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -228,6 +228,8 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
     const success = await deleteFeedbackById(ticket.id);
     if (success) {
       await logAdminAction('delete', 'feedback', ticket.id);
+      // Delete from Google Sheets
+      await deleteFromGoogleSheets(ticket.id, ticket.department as Department);
       toast.success('Обращение удалено');
       onBack();
       onUpdate();
