@@ -64,8 +64,8 @@ export const FEEDBACK_SUBJECTS: { code: Department; labelKey: string }[] = [
 // Short department labels for admin panel
 export const DEPARTMENT_LABELS: Record<Department, string> = {
   ssl: 'ССЛ',
-  zamgd_kom: 'ЗамГД Ком',
-  marketing: 'ЗАМ ГД Ком Маркетинг',
+  zamgd_kom: 'ЗамГД ОП',
+  marketing: 'ЗамГД Маркетинг',
   service_aho: 'Сервис / АХО',
   otitb_hse: 'ОТиТБ (HSE)',
   omto: 'ОМТО',
