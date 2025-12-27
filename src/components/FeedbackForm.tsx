@@ -48,6 +48,11 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
       toast.error(t('errorMessage'));
       return;
     }
+    
+    if (!objectCode) {
+      toast.error(t('selectObject'));
+      return;
+    }
 
     setIsSubmitting(true);
 
