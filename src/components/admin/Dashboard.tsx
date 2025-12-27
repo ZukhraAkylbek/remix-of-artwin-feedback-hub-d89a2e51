@@ -1,9 +1,10 @@
-import { Feedback, Department, FeedbackStatus, FEEDBACK_TYPE_CONFIG } from '@/types/feedback';
+import { Feedback, Department, FeedbackStatus, FEEDBACK_TYPE_CONFIG, DEPARTMENT_LABELS } from '@/types/feedback';
 import { 
   MessageSquare, 
   CheckCircle, 
   Clock,
-  TrendingUp
+  TrendingUp,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,12 @@ interface DashboardProps {
 
 // Only Rukovodstvo sees all feedback from all departments
 const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['rukovodstvo'];
+
+// Departments to show in breakdown (excluding rukovodstvo itself)
+const BREAKDOWN_DEPARTMENTS: Department[] = [
+  'ssl', 'zamgd_kom', 'marketing', 'service_aho', 'otitb_hse', 'omto',
+  'hr', 'zamgd_tech', 'otd_razv', 'legal', 'finance', 'security'
+];
 
 export const Dashboard = ({ feedback, department }: DashboardProps) => {
   // SSL sees all feedback, other departments see only their own
@@ -33,6 +40,24 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
     count: departmentFeedback.filter(f => f.type === type).length,
     config: FEEDBACK_TYPE_CONFIG[type as keyof typeof FEEDBACK_TYPE_CONFIG]
   }));
+
+  // Compute per-department breakdown for rukovodstvo
+  const departmentBreakdown = GLOBAL_VIEW_DEPARTMENTS.includes(department)
+    ? BREAKDOWN_DEPARTMENTS.map(dept => {
+        const deptFeedback = feedback.filter(f => f.department === dept);
+        return {
+          department: dept,
+          label: DEPARTMENT_LABELS[dept],
+          total: deptFeedback.length,
+          remarks: deptFeedback.filter(f => f.type === 'remark').length,
+          suggestions: deptFeedback.filter(f => f.type === 'suggestion').length,
+          gratitudes: deptFeedback.filter(f => f.type === 'gratitude').length,
+          new: deptFeedback.filter(f => f.status === 'new').length,
+          inProgress: deptFeedback.filter(f => f.status === 'in_progress').length,
+          resolved: deptFeedback.filter(f => f.status === 'resolved').length,
+        };
+      }).filter(d => d.total > 0)
+    : [];
 
   const statCards = [
     { label: 'Всего обращений', value: stats.total, icon: <MessageSquare className="w-5 h-5" />, color: 'text-primary', bg: 'bg-primary/10' },
@@ -61,6 +86,48 @@ export const Dashboard = ({ feedback, department }: DashboardProps) => {
           </div>
         ))}
       </div>
+
+      {/* Per-department breakdown for rukovodstvo */}
+      {GLOBAL_VIEW_DEPARTMENTS.includes(department) && departmentBreakdown.length > 0 && (
+        <div className="card-elevated p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
+            <h3 className="font-semibold text-lg">Статистика по отделам</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 font-medium">Отдел</th>
+                  <th className="text-center py-3 px-2 font-medium">Всего</th>
+                  <th className="text-center py-3 px-2 font-medium text-red-500">Замечания</th>
+                  <th className="text-center py-3 px-2 font-medium text-blue-500">Предложения</th>
+                  <th className="text-center py-3 px-2 font-medium text-green-500">Благодарности</th>
+                  <th className="text-center py-3 px-2 font-medium text-amber-500">Новые</th>
+                  <th className="text-center py-3 px-2 font-medium text-blue-600">В работе</th>
+                  <th className="text-center py-3 px-2 font-medium text-emerald-600">Решены</th>
+                </tr>
+              </thead>
+              <tbody>
+                {departmentBreakdown.map((dept) => (
+                  <tr key={dept.department} className="border-b border-border/50 hover:bg-muted/50">
+                    <td className="py-3 px-2 font-medium">{dept.label}</td>
+                    <td className="text-center py-3 px-2">{dept.total}</td>
+                    <td className="text-center py-3 px-2 text-red-500">{dept.remarks}</td>
+                    <td className="text-center py-3 px-2 text-blue-500">{dept.suggestions}</td>
+                    <td className="text-center py-3 px-2 text-green-500">{dept.gratitudes}</td>
+                    <td className="text-center py-3 px-2 text-amber-500">{dept.new}</td>
+                    <td className="text-center py-3 px-2 text-blue-600">{dept.inProgress}</td>
+                    <td className="text-center py-3 px-2 text-emerald-600">{dept.resolved}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card-elevated p-6">
