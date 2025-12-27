@@ -322,73 +322,110 @@ const extractSpreadsheetId = (input: string): string => {
 export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> => {
   const deptSettings = await getDepartmentSettings(feedback.department);
   
-  if (!deptSettings?.googleSheetsId) {
-    console.log('Google Sheets ID not configured for department:', feedback.department);
-    return false;
-  }
-  
-  if (!deptSettings?.googleServiceAccountEmail || !deptSettings?.googlePrivateKey) {
-    console.log('Google service account credentials not configured for department:', feedback.department);
-    return false;
-  }
+  // Get urgency level label
+  const getUrgencyLabel = (level?: number): string => {
+    const labels: Record<number, string> = {
+      1: 'Обычный',
+      2: 'Средний',
+      3: 'Высокий',
+      4: 'Критический'
+    };
+    return labels[level || 1] || 'Обычный';
+  };
 
-  const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
   const objectName = feedback.objectCode 
     ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.nameKey || feedback.objectCode
     : '';
 
-  try {
-    console.log('Sending to Google Sheets:', { spreadsheetId, department: feedback.department });
+  // Prepare row data once
+  const rowData = [
+    feedback.id,                                        // A - ID
+    feedback.createdAt,                                 // B - Дата
+    getRoleName(feedback.userRole),                     // C - Роль
+    getTypeName(feedback.type),                         // D - Тип
+    feedback.isAnonymous ? 'Анонимно' : feedback.name,  // E - Имя
+    feedback.contact || '',                             // F - Контакт
+    feedback.message,                                   // G - Сообщение
+    objectName,                                         // H - Объект
+    getDepartmentName(feedback.department),             // I - Отдел (целевой департамент)
+    getStatusName(feedback.status),                     // J - Статус
+    feedback.subStatus || '',                           // K - Подстатус
+    feedback.attachmentUrl || '',                       // L - Файл
+    feedback.bitrixTaskId || '',                        // M - Bitrix ID
+    feedback.deadline || '',                            // N - Дедлайн
+    getUrgencyLabel(feedback.urgencyLevel),             // O - Уровень срочности
+    feedback.assignedToName || ''                       // P - Ответственный
+  ];
+
+  let departmentSuccess = false;
+  let rukovodstvoSuccess = false;
+
+  // Send to department's Google Sheets
+  if (deptSettings?.googleSheetsId && deptSettings?.googleServiceAccountEmail && deptSettings?.googlePrivateKey) {
+    const spreadsheetId = extractSpreadsheetId(deptSettings.googleSheetsId);
     
-    // Get urgency level label
-    const getUrgencyLabel = (level?: number): string => {
-      const labels: Record<number, string> = {
-        1: 'Обычный',
-        2: 'Средний',
-        3: 'Высокий',
-        4: 'Критический'
-      };
-      return labels[level || 1] || 'Обычный';
-    };
-    
-    const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
-      body: {
-        spreadsheetId,
-        range: 'A:P',
-        values: [[
-          feedback.id,                                        // A - ID
-          feedback.createdAt,                                 // B - Дата
-          getRoleName(feedback.userRole),                     // C - Роль
-          getTypeName(feedback.type),                         // D - Тип
-          feedback.isAnonymous ? 'Анонимно' : feedback.name,  // E - Имя
-          feedback.contact || '',                             // F - Контакт
-          feedback.message,                                   // G - Сообщение
-          objectName,                                         // H - Объект
-          getDepartmentName(feedback.department),             // I - Отдел
-          getStatusName(feedback.status),                     // J - Статус
-          feedback.subStatus || '',                           // K - Подстатус
-          feedback.attachmentUrl || '',                       // L - Файл
-          feedback.bitrixTaskId || '',                        // M - Bitrix ID
-          feedback.deadline || '',                            // N - Дедлайн
-          getUrgencyLabel(feedback.urgencyLevel),             // O - Уровень срочности
-          feedback.assignedToName || ''                       // P - Ответственный
-        ]],
-        serviceAccountEmail: deptSettings.googleServiceAccountEmail,
-        privateKey: deptSettings.googlePrivateKey
+    try {
+      console.log('Sending to department Google Sheets:', { spreadsheetId, department: feedback.department });
+      
+      const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
+        body: {
+          spreadsheetId,
+          range: 'A:P',
+          values: [rowData],
+          serviceAccountEmail: deptSettings.googleServiceAccountEmail,
+          privateKey: deptSettings.googlePrivateKey
+        }
+      });
+
+      if (error) {
+        console.error('Department Google Sheets error:', error);
+      } else {
+        console.log('Department Google Sheets result:', data);
+        departmentSuccess = data?.success === true;
       }
-    });
-
-    if (error) {
-      console.error('Google Sheets edge function error:', error);
-      return false;
+    } catch (error) {
+      console.error('Department Google Sheets error:', error);
     }
-
-    console.log('Google Sheets sync result:', data);
-    return data?.success === true;
-  } catch (error) {
-    console.error('Google Sheets error:', error);
-    return false;
+  } else {
+    console.log('Google Sheets not configured for department:', feedback.department);
   }
+
+  // Also send to Rukovodstvo's Google Sheets (all feedback goes there)
+  if (feedback.department !== 'rukovodstvo') {
+    const rukovodstvoSettings = await getDepartmentSettings('rukovodstvo');
+    
+    if (rukovodstvoSettings?.googleSheetsId && rukovodstvoSettings?.googleServiceAccountEmail && rukovodstvoSettings?.googlePrivateKey) {
+      const rukovodstvoSpreadsheetId = extractSpreadsheetId(rukovodstvoSettings.googleSheetsId);
+      
+      try {
+        console.log('Sending copy to Rukovodstvo Google Sheets:', { spreadsheetId: rukovodstvoSpreadsheetId });
+        
+        const { data, error } = await supabase.functions.invoke('submit-to-sheets', {
+          body: {
+            spreadsheetId: rukovodstvoSpreadsheetId,
+            range: 'A:P',
+            values: [rowData],
+            serviceAccountEmail: rukovodstvoSettings.googleServiceAccountEmail,
+            privateKey: rukovodstvoSettings.googlePrivateKey
+          }
+        });
+
+        if (error) {
+          console.error('Rukovodstvo Google Sheets error:', error);
+        } else {
+          console.log('Rukovodstvo Google Sheets result:', data);
+          rukovodstvoSuccess = data?.success === true;
+        }
+      } catch (error) {
+        console.error('Rukovodstvo Google Sheets error:', error);
+      }
+    } else {
+      console.log('Google Sheets not configured for Rukovodstvo');
+    }
+  }
+
+  // Return true if at least one succeeded
+  return departmentSuccess || rukovodstvoSuccess;
 };
 
 // Send feedback to Bitrix24 as a task
