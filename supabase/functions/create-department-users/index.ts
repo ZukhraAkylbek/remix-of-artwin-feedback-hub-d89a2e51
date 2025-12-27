@@ -18,7 +18,7 @@ const departmentUsers: DepartmentUser[] = [
   { email: 'zakup@artwin.kg', password: 'artwinzakup', department: 'omto' },
   { email: 'sales@artwin.kg', password: 'artwinsales', department: 'zamgd_kom' },
   { email: 'hr@artwin.kg', password: 'artwinhr', department: 'hr' },
-  { email: 'marketing@artwin.kg', password: 'artwinmarketing', department: 'zamgd_kom' },
+  { email: 'marketing@artwin.kg', password: 'artwinmarketing', department: 'marketing' },
   { email: 'clients@artwin.kg', password: 'artwinclients', department: 'ssl' },
   { email: 'tech@artwin.kg', password: 'artwintech', department: 'zamgd_tech' },
   { email: 'safety@artwin.kg', password: 'artwinsafety', department: 'security' },

@@ -3,7 +3,7 @@ import { Department, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Logo } from '@/components/Logo';
 import { 
   Users, Wallet, Megaphone, LogOut, Heart, HardHat, Shield, 
-  Loader2, Scale, Banknote, Package, AlertTriangle, Building2, Lightbulb, Briefcase 
+  Loader2, Scale, Banknote, Package, AlertTriangle, Building2, Lightbulb, Briefcase, TrendingUp 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ const departments: { id: Department; label: string; icon: React.ReactNode }[] = 
   { id: 'rukovodstvo', label: DEPARTMENT_LABELS.rukovodstvo, icon: <Briefcase className="w-6 h-6" /> },
   { id: 'ssl', label: DEPARTMENT_LABELS.ssl, icon: <Heart className="w-6 h-6" /> },
   { id: 'zamgd_kom', label: DEPARTMENT_LABELS.zamgd_kom, icon: <Megaphone className="w-6 h-6" /> },
+  { id: 'marketing', label: DEPARTMENT_LABELS.marketing, icon: <TrendingUp className="w-6 h-6" /> },
   { id: 'service_aho', label: DEPARTMENT_LABELS.service_aho, icon: <Building2 className="w-6 h-6" /> },
   { id: 'otitb_hse', label: DEPARTMENT_LABELS.otitb_hse, icon: <AlertTriangle className="w-6 h-6" /> },
   { id: 'omto', label: DEPARTMENT_LABELS.omto, icon: <Package className="w-6 h-6" /> },
@@ -38,6 +39,7 @@ const departmentCredentials: Record<Department, { email: string }> = {
   rukovodstvo: { email: 'management@artwin.kg' },
   ssl: { email: 'clients@artwin.kg' },
   zamgd_kom: { email: 'sales@artwin.kg' },
+  marketing: { email: 'marketing@artwin.kg' },
   service_aho: { email: 'reception@artwin.kg' },
   otitb_hse: { email: 'hse@artwin.kg' },
   omto: { email: 'zakup@artwin.kg' },

@@ -4,7 +4,8 @@ export type FeedbackType = 'remark' | 'suggestion' | 'gratitude';
 // Internal department codes for admin panel
 export type Department = 
   | 'ssl'           // ССЛ - Сервис для владельцев недвижимости
-  | 'zamgd_kom'     // ЗамГД Ком - Продажи и консультации, Маркетинг и партнерства
+  | 'zamgd_kom'     // ЗамГД Ком - Продажи и консультации
+  | 'marketing'     // ЗАМ ГД Ком Маркетинг - Маркетинг и партнерства
   | 'service_aho'   // Сервис / АХО - Ресепшн и офис-сервис
   | 'otitb_hse'     // ОТиТБ (HSE) - Безопасность труда
   | 'omto'          // ОМТО - Закупки и поставки
@@ -51,7 +52,7 @@ export const FEEDBACK_SUBJECTS: { code: Department; labelKey: string }[] = [
   { code: 'service_aho', labelKey: 'subjectReceptionOffice' },
   { code: 'otitb_hse', labelKey: 'subjectHSE' },
   { code: 'omto', labelKey: 'subjectProcurement' },
-  { code: 'zamgd_kom', labelKey: 'subjectMarketingPartnerships' },
+  { code: 'marketing', labelKey: 'subjectMarketingPartnerships' },
   { code: 'hr', labelKey: 'subjectHRConditions' },
   { code: 'zamgd_tech', labelKey: 'subjectConstructionContractors' },
   { code: 'otd_razv', labelKey: 'subjectProjectRemarks' },
@@ -64,6 +65,7 @@ export const FEEDBACK_SUBJECTS: { code: Department; labelKey: string }[] = [
 export const DEPARTMENT_LABELS: Record<Department, string> = {
   ssl: 'ССЛ',
   zamgd_kom: 'ЗамГД Ком',
+  marketing: 'ЗАМ ГД Ком Маркетинг',
   service_aho: 'Сервис / АХО',
   otitb_hse: 'ОТиТБ (HSE)',
   omto: 'ОМТО',
