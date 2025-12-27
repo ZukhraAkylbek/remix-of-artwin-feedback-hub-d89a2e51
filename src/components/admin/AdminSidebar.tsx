@@ -21,7 +21,8 @@ import {
   Building2,
   Lightbulb,
   Briefcase,
-  CalendarCheck
+  CalendarCheck,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +37,7 @@ interface AdminSidebarProps {
 const departmentIcons: Record<Department, React.ReactNode> = {
   ssl: <Heart className="w-5 h-5" />,
   zamgd_kom: <Megaphone className="w-5 h-5" />,
+  marketing: <TrendingUp className="w-5 h-5" />,
   service_aho: <Building2 className="w-5 h-5" />,
   otitb_hse: <AlertTriangle className="w-5 h-5" />,
   omto: <Package className="w-5 h-5" />,
