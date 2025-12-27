@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner';
 
 const ALL_DEPARTMENTS: Department[] = [
-  'rukovodstvo', 'ssl', 'zamgd_kom', 'service_aho', 'otitb_hse', 'omto', 
+  'rukovodstvo', 'ssl', 'zamgd_kom', 'marketing', 'service_aho', 'otitb_hse', 'omto', 
   'hr', 'zamgd_tech', 'otd_razv', 'legal', 'finance', 'security'
 ];
 
