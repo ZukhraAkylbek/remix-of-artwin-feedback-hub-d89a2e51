@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Department, DepartmentSettings, DEPARTMENT_LABELS } from '@/types/feedback';
 import { getAllDepartmentSettings, saveDepartmentSettings, getDepartmentName } from '@/lib/departmentSettings';
+import { syncAllToRukovodstvoSheets } from '@/lib/integrations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,8 @@ import {
   MessageCircle,
   Loader2,
   CheckCircle2,
-  Webhook
+  Webhook,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,6 +27,7 @@ export const DepartmentSettingsPanel = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [savingDept, setSavingDept] = useState<string | null>(null);
   const [activeDept, setActiveDept] = useState<Department>('ssl');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const loadSettings = async () => {
     const data = await getAllDepartmentSettings();
@@ -50,6 +53,23 @@ export const DepartmentSettingsPanel = () => {
       toast.error('Ошибка сохранения');
     }
     setSavingDept(null);
+  };
+
+  const handleSyncAllToRukovodstvo = async () => {
+    setIsSyncing(true);
+    try {
+      const result = await syncAllToRukovodstvoSheets();
+      if (result.syncedCount > 0) {
+        toast.success(`Синхронизировано ${result.syncedCount} обращений в Google Sheets Руководства`);
+      } else if (result.errors > 0) {
+        toast.error(`Ошибки при синхронизации: ${result.errors}`);
+      } else {
+        toast.info('Нет обращений для синхронизации');
+      }
+    } catch (error) {
+      toast.error('Ошибка синхронизации');
+    }
+    setIsSyncing(false);
   };
 
   const updateSettings = (dept: Department, updates: Partial<DepartmentSettings>) => {
@@ -138,6 +158,28 @@ export const DepartmentSettingsPanel = () => {
                       placeholder="-----BEGIN PRIVATE KEY-----..."
                     />
                   </div>
+                  
+                  {/* Sync all button for Rukovodstvo */}
+                  {dept === 'rukovodstvo' && deptSettings.googleSheetsId && (
+                    <div className="pt-4 border-t">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleSyncAllToRukovodstvo} 
+                        disabled={isSyncing}
+                        className="gap-2 w-full"
+                      >
+                        {isSyncing ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4" />
+                        )}
+                        Синхронизировать все обращения в таблицу
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Выгрузит все существующие обращения из базы данных в Google Sheets
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
