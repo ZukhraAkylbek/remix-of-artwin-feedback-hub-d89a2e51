@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.delete-from-sheet]
 verify_jwt = false
+
+[functions.voice-to-text]
+verify_jwt = false

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Feedback, Department, FEEDBACK_TYPE_CONFIG, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Send, FileText, Loader2 } from 'lucide-react';
-import { getSettings } from '@/lib/storage';
+import { getDepartmentSettings } from '@/lib/departmentSettings';
 import { toast } from 'sonner';
 
 interface ReportsPanelProps {
@@ -15,6 +15,7 @@ const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['rukovodstvo'];
 
 export const ReportsPanel = ({ feedback, department }: ReportsPanelProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [report, setReport] = useState<string>('');
 
   // SSL sees all feedback, other departments see only their own
@@ -63,14 +64,18 @@ ${typeBreakdown}
   };
 
   const sendToTelegram = async () => {
-    const settings = await getSettings();
-    if (!settings.telegramBotToken || !settings.telegramChatId) {
-      toast.error('Настройте Telegram в разделе Настройки');
-      return;
-    }
-
+    setIsSending(true);
+    
     try {
-      await fetch(`https://api.telegram.org/bot${settings.telegramBotToken}/sendMessage`, {
+      const settings = await getDepartmentSettings(department);
+      
+      if (!settings?.telegramBotToken || !settings?.telegramChatId) {
+        toast.error('Настройте Telegram в разделе Настройки для этого отдела');
+        setIsSending(false);
+        return;
+      }
+
+      const response = await fetch(`https://api.telegram.org/bot${settings.telegramBotToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -79,9 +84,19 @@ ${typeBreakdown}
           parse_mode: 'HTML'
         })
       });
-      toast.success('Отчёт отправлен в Telegram');
+
+      if (response.ok) {
+        toast.success('Отчёт отправлен в Telegram');
+      } else {
+        const error = await response.json();
+        console.error('Telegram error:', error);
+        toast.error('Ошибка отправки в Telegram');
+      }
     } catch (error) {
+      console.error('Error sending to Telegram:', error);
       toast.error('Ошибка отправки');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -112,9 +127,14 @@ ${typeBreakdown}
         {report && (
           <div className="space-y-4 animate-slide-up">
             <div className="p-4 rounded-lg bg-muted/50 whitespace-pre-wrap text-sm">{report}</div>
-            <Button variant="outline" onClick={sendToTelegram} className="gap-2">
-              <Send className="w-4 h-4" />
-              Отправить в Telegram
+            <Button 
+              variant="outline" 
+              onClick={sendToTelegram} 
+              disabled={isSending}
+              className="gap-2"
+            >
+              {isSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {isSending ? 'Отправка...' : 'Отправить в Telegram'}
             </Button>
           </div>
         )}

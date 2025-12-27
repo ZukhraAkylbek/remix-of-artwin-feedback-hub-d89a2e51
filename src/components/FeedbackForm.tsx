@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { addFeedbackToDb } from '@/lib/database';
 import { sendToTelegram, syncToGoogleSheets, sendToBitrix } from '@/lib/integrations';
 import { uploadAttachment } from '@/lib/fileUpload';
-import { Paperclip, Send, Loader2 } from 'lucide-react';
+import { Paperclip, Send, Loader2, Mic, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 
 interface FeedbackFormProps {
   type: FeedbackType;
@@ -30,6 +31,10 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
   const [objectCode, setObjectCode] = useState<ResidentialObject | ''>('');
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { isRecording, isTranscribing, startRecording, stopRecording } = useVoiceRecorder((text) => {
+    setMessage(prev => prev ? `${prev} ${text}` : text);
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -153,13 +158,36 @@ export const FeedbackForm = ({ type, userRole, onSuccess }: FeedbackFormProps) =
 
       <div className="space-y-2">
         <Label htmlFor="message">{t('message')}</Label>
-        <Textarea
-          id="message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={t('describeMessage')}
-          className="min-h-[150px] resize-none"
-        />
+        <div className="relative">
+          <Textarea
+            id="message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={t('describeMessage')}
+            className="min-h-[150px] resize-none pr-14"
+          />
+          <button
+            type="button"
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isTranscribing}
+            className={cn(
+              "absolute bottom-3 right-3 p-2 rounded-full transition-colors",
+              isRecording 
+                ? "bg-destructive text-destructive-foreground animate-pulse" 
+                : "bg-muted hover:bg-muted-foreground/20",
+              isTranscribing && "opacity-50 cursor-not-allowed"
+            )}
+            title={isRecording ? 'Остановить запись' : 'Голосовой ввод'}
+          >
+            {isTranscribing ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isRecording ? (
+              <Square className="w-5 h-5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
