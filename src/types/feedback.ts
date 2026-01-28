@@ -117,6 +117,9 @@ export interface Feedback {
   urgencyLevel?: UrgencyLevel;
   redirectedFrom?: Department | null;
   redirectedAt?: string | null;
+  finalPhotoUrl?: string | null;
+  taskStatusId?: string | null;
+  taskSubstatusId?: string | null;
 }
 
 export interface AIAnalysis {

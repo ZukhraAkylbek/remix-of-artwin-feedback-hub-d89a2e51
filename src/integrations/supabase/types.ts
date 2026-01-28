@@ -157,6 +157,7 @@ export type Database = {
           created_at: string
           deadline: string | null
           department: string
+          final_photo_url: string | null
           id: string
           is_anonymous: boolean
           message: string
@@ -166,6 +167,8 @@ export type Database = {
           redirected_from: string | null
           status: string
           sub_status: string | null
+          task_status_id: string | null
+          task_substatus_id: string | null
           type: string
           urgency: string
           urgency_level: number | null
@@ -181,6 +184,7 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           department: string
+          final_photo_url?: string | null
           id?: string
           is_anonymous?: boolean
           message: string
@@ -190,6 +194,8 @@ export type Database = {
           redirected_from?: string | null
           status?: string
           sub_status?: string | null
+          task_status_id?: string | null
+          task_substatus_id?: string | null
           type: string
           urgency?: string
           urgency_level?: number | null
@@ -205,6 +211,7 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           department?: string
+          final_photo_url?: string | null
           id?: string
           is_anonymous?: boolean
           message?: string
@@ -214,6 +221,8 @@ export type Database = {
           redirected_from?: string | null
           status?: string
           sub_status?: string | null
+          task_status_id?: string | null
+          task_substatus_id?: string | null
           type?: string
           urgency?: string
           urgency_level?: number | null
@@ -225,6 +234,20 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_task_status_id_fkey"
+            columns: ["task_status_id"]
+            isOneToOne: false
+            referencedRelation: "task_statuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_task_substatus_id_fkey"
+            columns: ["task_substatus_id"]
+            isOneToOne: false
+            referencedRelation: "task_substatuses"
             referencedColumns: ["id"]
           },
         ]
@@ -279,6 +302,77 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      task_statuses: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department: string
+          id: string
+          is_active: boolean
+          is_final: boolean
+          name: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department: string
+          id?: string
+          is_active?: boolean
+          is_final?: boolean
+          name: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department?: string
+          id?: string
+          is_active?: boolean
+          is_final?: boolean
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
+      task_substatuses: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          status_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          position?: number
+          status_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          status_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_substatuses_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "task_statuses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_departments: {
         Row: {
