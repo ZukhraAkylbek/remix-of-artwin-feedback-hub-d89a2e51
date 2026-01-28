@@ -75,7 +75,7 @@ export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) 
               className="gap-1"
             >
               <AlertTriangle className="w-3 h-3" />
-              Уровень {level}
+              {levelConfig.label}
             </Badge>
           </div>
         </div>
@@ -165,7 +165,7 @@ export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) 
             <div>
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-destructive">
                 <AlertTriangle className="w-5 h-5" />
-                Уровень 4 — Критические ({urgentTickets.length})
+                4 - Учредитель ({urgentTickets.length})
               </h2>
               <div className="grid gap-4">
                 {urgentTickets.map(ticket => (
@@ -179,7 +179,7 @@ export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) 
             <div>
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-orange-600">
                 <AlertTriangle className="w-5 h-5" />
-                Уровень 3 — Высокий приоритет ({highPriorityTickets.length})
+                3 - ГД ({highPriorityTickets.length})
               </h2>
               <div className="grid gap-4">
                 {highPriorityTickets.map(ticket => (
@@ -200,11 +200,11 @@ export const MeetingsPanel = ({ feedback, onSelectTicket }: MeetingsPanelProps) 
           </div>
           <div className="p-4 rounded-lg bg-destructive/10 text-center">
             <p className="text-2xl font-bold text-destructive">{urgentTickets.length}</p>
-            <p className="text-sm text-muted-foreground">Уровень 4</p>
+            <p className="text-sm text-muted-foreground">4 - Учредитель</p>
           </div>
           <div className="p-4 rounded-lg bg-orange-500/10 text-center">
             <p className="text-2xl font-bold text-orange-600">{highPriorityTickets.length}</p>
-            <p className="text-sm text-muted-foreground">Уровень 3</p>
+            <p className="text-sm text-muted-foreground">3 - ГД</p>
           </div>
           <div className="p-4 rounded-lg bg-primary/10 text-center">
             <p className="text-2xl font-bold text-primary">
