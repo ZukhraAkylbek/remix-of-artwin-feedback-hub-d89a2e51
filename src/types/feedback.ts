@@ -120,6 +120,7 @@ export interface Feedback {
   finalPhotoUrl?: string | null;
   taskStatusId?: string | null;
   taskSubstatusId?: string | null;
+  isBlocker?: boolean;
 }
 
 export interface AIAnalysis {

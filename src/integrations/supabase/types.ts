@@ -160,6 +160,7 @@ export type Database = {
           final_photo_url: string | null
           id: string
           is_anonymous: boolean
+          is_blocker: boolean
           message: string
           name: string | null
           object_code: string | null
@@ -187,6 +188,7 @@ export type Database = {
           final_photo_url?: string | null
           id?: string
           is_anonymous?: boolean
+          is_blocker?: boolean
           message: string
           name?: string | null
           object_code?: string | null
@@ -214,6 +216,7 @@ export type Database = {
           final_photo_url?: string | null
           id?: string
           is_anonymous?: boolean
+          is_blocker?: boolean
           message?: string
           name?: string | null
           object_code?: string | null
