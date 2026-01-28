@@ -128,6 +128,7 @@ const Admin = () => {
               ticket={selectedTicket}
               onBack={() => setSelectedTicketId(null)}
               onUpdate={refreshData}
+              currentDepartment={department}
             />
           )}
 

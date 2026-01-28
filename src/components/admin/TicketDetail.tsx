@@ -90,6 +90,7 @@ interface TicketDetailProps {
   ticket: Feedback;
   onBack: () => void;
   onUpdate: () => void;
+  currentDepartment?: string;
 }
 
 const typeIcons: Record<FeedbackType, React.ReactNode> = {
@@ -98,7 +99,9 @@ const typeIcons: Record<FeedbackType, React.ReactNode> = {
   gratitude: <Heart className="w-6 h-6" />,
 };
 
-export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) => {
+export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: TicketDetailProps) => {
+  // Use current admin department for statuses, fallback to ticket department
+  const statusDepartment = currentDepartment || ticket.department;
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -147,7 +150,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
     loadEmployees();
     loadDeadlineSetting();
     loadTaskStatuses();
-  }, [ticket.department]);
+  }, [statusDepartment]);
 
   // Subscribe to realtime changes for task_statuses and task_substatuses
   useEffect(() => {
@@ -168,7 +171,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [ticket.department]);
+  }, [statusDepartment]);
 
   const loadDeadlineSetting = async () => {
     const enabled = await getAppSetting('deadline_enabled');
@@ -183,11 +186,11 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const loadTaskStatuses = async () => {
     setIsLoadingStatuses(true);
     try {
-      // Fetch statuses for the department
+      // Fetch statuses for the current admin department
       const { data: statusesData, error: statusesError } = await supabase
         .from('task_statuses')
         .select('*')
-        .eq('department', ticket.department)
+        .eq('department', statusDepartment)
         .eq('is_active', true)
         .order('position', { ascending: true });
 
