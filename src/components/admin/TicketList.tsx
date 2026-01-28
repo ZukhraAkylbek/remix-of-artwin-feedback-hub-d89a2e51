@@ -120,15 +120,25 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
         ))}
         
         <span className="text-sm text-muted-foreground ml-4 mr-2">Уровень:</span>
-        {(['all', 1, 2, 3, 4] as const).map((level) => (
+        <Button 
+          variant={levelFilter === 'all' ? 'default' : 'outline'} 
+          size="sm" 
+          onClick={() => setLevelFilter('all')}
+        >
+          Все
+        </Button>
+        {([1, 2, 3, 4] as UrgencyLevel[]).map((level) => (
           <Button 
             key={level} 
             variant={levelFilter === level ? 'default' : 'outline'} 
             size="sm" 
             onClick={() => setLevelFilter(level)}
-            style={level !== 'all' && levelFilter === level ? { backgroundColor: URGENCY_LEVEL_CONFIG[level as UrgencyLevel].color } : {}}
+            style={levelFilter === level ? { 
+              backgroundColor: URGENCY_LEVEL_CONFIG[level].color,
+              color: 'white'
+            } : {}}
           >
-            {level === 'all' ? 'Все' : level}
+            {URGENCY_LEVEL_CONFIG[level].label}
           </Button>
         ))}
       </div>
