@@ -9,6 +9,7 @@ import { Dashboard } from '@/components/admin/Dashboard';
 import { TicketList } from '@/components/admin/TicketList';
 import { TicketDetail } from '@/components/admin/TicketDetail';
 import { SettingsPanel } from '@/components/admin/SettingsPanel';
+import { StatusSettingsPanel } from '@/components/admin/StatusSettingsPanel';
 import { ReportsPanel } from '@/components/admin/ReportsPanel';
 import { EmployeesPanel } from '@/components/admin/EmployeesPanel';
 import { HistoryPanel } from '@/components/admin/HistoryPanel';
@@ -161,6 +162,10 @@ const Admin = () => {
 
           {activeTab === 'history' && (
             <HistoryPanel />
+          )}
+
+          {activeTab === 'status-settings' && (
+            <StatusSettingsPanel department={department} />
           )}
 
           {activeTab === 'settings' && (

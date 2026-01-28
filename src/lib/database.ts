@@ -24,6 +24,9 @@ const rowToFeedback = (row: any): Feedback => ({
   urgencyLevel: row.urgency_level || 1,
   redirectedFrom: row.redirected_from || null,
   redirectedAt: row.redirected_at || null,
+  finalPhotoUrl: row.final_photo_url || null,
+  taskStatusId: row.task_status_id || null,
+  taskSubstatusId: row.task_substatus_id || null,
 });
 
 // Fetch all feedback from database
@@ -443,6 +446,43 @@ export const setAppSetting = async (key: string, value: any): Promise<boolean> =
 
   if (error) {
     console.error('Error updating app setting:', error);
+    return false;
+  }
+
+  return true;
+};
+
+// Update final photo URL for feedback
+export const updateFeedbackFinalPhoto = async (id: string, finalPhotoUrl: string | null): Promise<boolean> => {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ final_photo_url: finalPhotoUrl })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating final photo:', error);
+    return false;
+  }
+
+  return true;
+};
+
+// Update task status and substatus for feedback
+export const updateFeedbackTaskStatus = async (
+  id: string, 
+  taskStatusId: string | null, 
+  taskSubstatusId: string | null
+): Promise<boolean> => {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ 
+      task_status_id: taskStatusId,
+      task_substatus_id: taskSubstatusId
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating task status:', error);
     return false;
   }
 

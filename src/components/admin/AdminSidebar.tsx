@@ -65,6 +65,7 @@ const menuItems: MenuItem[] = [
   { id: 'employees', label: 'Сотрудники', icon: <Users className="w-5 h-5" /> },
   { id: 'reports', label: 'Отчёты', icon: <FileText className="w-5 h-5" /> },
   { id: 'history', label: 'История', icon: <History className="w-5 h-5" /> },
+  { id: 'status-settings', label: 'Настройки статусов', icon: <Settings className="w-5 h-5" /> },
   { id: 'settings', label: 'Настройки', icon: <Settings className="w-5 h-5" /> },
 ];
 

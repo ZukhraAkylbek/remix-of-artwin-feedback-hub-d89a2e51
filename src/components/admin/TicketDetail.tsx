@@ -22,11 +22,15 @@ import {
   Building,
   CalendarClock,
   X,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Upload,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto } from '@/lib/database';
+import { supabase } from '@/integrations/supabase/client';
 import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets, deleteFromGoogleSheets } from '@/lib/integrations';
 import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';
 import { format } from 'date-fns';
@@ -106,6 +110,10 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [showRedirectDialog, setShowRedirectDialog] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [redirectTarget, setRedirectTarget] = useState<string>('');
+  
+  // Final photo state
+  const [finalPhotoUrl, setFinalPhotoUrl] = useState<string | null>(ticket.finalPhotoUrl || null);
+  const [isUploadingFinalPhoto, setIsUploadingFinalPhoto] = useState(false);
 
   const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
   const objectInfo = ticket.objectCode ? RESIDENTIAL_OBJECTS.find(o => o.code === ticket.objectCode) : null;
@@ -272,6 +280,69 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       toast.error('Ошибка переадресации');
     }
     setIsRedirecting(false);
+  };
+
+  // Handle final photo upload
+  const handleFinalPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Пожалуйста, загрузите изображение');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Размер файла не должен превышать 5MB');
+      return;
+    }
+
+    setIsUploadingFinalPhoto(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${ticket.id}_final_${Date.now()}.${fileExt}`;
+      const filePath = `final-photos/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('feedback-attachments')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        toast.error('Ошибка загрузки файла');
+        return;
+      }
+
+      const { data } = supabase.storage
+        .from('feedback-attachments')
+        .getPublicUrl(filePath);
+
+      const success = await updateFeedbackFinalPhoto(ticket.id, data.publicUrl);
+      if (success) {
+        setFinalPhotoUrl(data.publicUrl);
+        await logAdminAction('upload_final_photo', 'feedback', ticket.id, null, { finalPhotoUrl: data.publicUrl });
+        toast.success('Финальное фото загружено');
+        onUpdate();
+      }
+    } catch (error) {
+      console.error('Error uploading final photo:', error);
+      toast.error('Ошибка загрузки файла');
+    } finally {
+      setIsUploadingFinalPhoto(false);
+    }
+  };
+
+  const handleRemoveFinalPhoto = async () => {
+    const success = await updateFeedbackFinalPhoto(ticket.id, null);
+    if (success) {
+      setFinalPhotoUrl(null);
+      await logAdminAction('remove_final_photo', 'feedback', ticket.id, { finalPhotoUrl }, null);
+      toast.success('Финальное фото удалено');
+      onUpdate();
+    }
   };
 
   return (
@@ -571,6 +642,91 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
                   <AlertTriangle className="w-4 h-4" />
                   Дедлайн просрочен
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Final Photo - only show when status is resolved */}
+          {currentStatus === 'resolved' && (
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                Финальное фото
+              </h3>
+              
+              {finalPhotoUrl ? (
+                <div className="space-y-3">
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img 
+                      src={finalPhotoUrl} 
+                      alt="Финальное фото" 
+                      className="w-full h-48 object-cover"
+                    />
+                    <a 
+                      href={finalPhotoUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="absolute top-2 right-2 p-2 bg-background/80 rounded-full hover:bg-background transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full gap-2 text-destructive hover:text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                        Удалить фото
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-background">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Удалить финальное фото?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Это действие нельзя отменить.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRemoveFinalPhoto}>
+                          Удалить
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                    <ImageIcon className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Загрузите фото выполненной работы
+                    </p>
+                    <label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFinalPhotoUpload}
+                        disabled={isUploadingFinalPhoto}
+                      />
+                      <Button 
+                        variant="outline" 
+                        className="gap-2" 
+                        disabled={isUploadingFinalPhoto}
+                        asChild
+                      >
+                        <span>
+                          {isUploadingFinalPhoto ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                          {isUploadingFinalPhoto ? 'Загрузка...' : 'Выбрать файл'}
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
+                </div>
               )}
             </div>
           )}
