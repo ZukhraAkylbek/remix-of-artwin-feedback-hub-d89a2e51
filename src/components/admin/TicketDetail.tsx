@@ -310,6 +310,9 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
       setSelectedTaskSubstatusId(null); // Reset substatus when status changes
       onUpdate();
       toast.success('Статус задачи обновлён');
+      
+      // Sync with Google Sheets
+      await updateStatusInGoogleSheets(ticket.id, statusName, ticket.department as Department, null);
     } else {
       toast.error('Ошибка обновления статуса');
     }
@@ -319,6 +322,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
   const handleTaskSubstatusChange = async (substatusId: string) => {
     const success = await updateFeedbackTaskStatus(ticket.id, selectedTaskStatusId, substatusId);
     if (success) {
+      const statusName = taskStatuses.find(s => s.id === selectedTaskStatusId)?.name || '';
       const substatusName = taskSubstatuses.find(s => s.id === substatusId)?.name || '';
       await logAdminAction('task_substatus_change', 'feedback', ticket.id, 
         { taskSubstatusId: selectedTaskSubstatusId }, 
@@ -327,6 +331,9 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
       setSelectedTaskSubstatusId(substatusId);
       onUpdate();
       toast.success('Подстатус обновлён');
+      
+      // Sync with Google Sheets
+      await updateStatusInGoogleSheets(ticket.id, statusName, ticket.department as Department, substatusName);
     } else {
       toast.error('Ошибка обновления подстатуса');
     }

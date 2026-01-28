@@ -10,9 +10,11 @@ interface SyncRequest {
   spreadsheetId: string;
   serviceAccountEmail: string;
   privateKey: string;
+  department?: string;
 }
 
-const statusMap: Record<string, string> = {
+// Legacy status map for backward compatibility
+const legacyStatusMap: Record<string, string> = {
   'Новая': 'new',
   'В работе': 'in_progress',
   'Решена': 'resolved',
@@ -95,9 +97,9 @@ serve(async (req) => {
   }
 
   try {
-    const { spreadsheetId, serviceAccountEmail, privateKey }: SyncRequest = await req.json();
+    const { spreadsheetId, serviceAccountEmail, privateKey, department }: SyncRequest = await req.json();
 
-    console.log('Sync from sheets request:', { spreadsheetId });
+    console.log('Sync from sheets request:', { spreadsheetId, department });
 
     const accessToken = await getAccessToken(serviceAccountEmail, privateKey);
 
@@ -121,8 +123,48 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Fetch all dynamic task statuses for the department
+    let taskStatusesMap: Record<string, { id: string; name: string }> = {};
+    let taskSubstatusesMap: Record<string, { id: string; name: string; statusId: string }> = {};
+    
+    if (department) {
+      // Get task statuses for this department
+      const { data: statusesData } = await supabase
+        .from('task_statuses')
+        .select('id, name')
+        .eq('department', department)
+        .eq('is_active', true);
+      
+      if (statusesData) {
+        for (const status of statusesData) {
+          // Map by name (case insensitive)
+          taskStatusesMap[status.name.toLowerCase()] = { id: status.id, name: status.name };
+        }
+
+        // Get substatuses for these statuses
+        const statusIds = statusesData.map(s => s.id);
+        if (statusIds.length > 0) {
+          const { data: substatusesData } = await supabase
+            .from('task_substatuses')
+            .select('id, name, status_id')
+            .in('status_id', statusIds)
+            .eq('is_active', true);
+          
+          if (substatusesData) {
+            for (const substatus of substatusesData) {
+              taskSubstatusesMap[substatus.name.toLowerCase()] = { 
+                id: substatus.id, 
+                name: substatus.name,
+                statusId: substatus.status_id 
+              };
+            }
+          }
+        }
+      }
+    }
+
     let updatedCount = 0;
-    const updates: { id: string; oldStatus: string; newStatus: string; subStatus?: string }[] = [];
+    const updates: { id: string; oldStatus: string; newStatus: string; subStatus?: string; taskStatusId?: string; taskSubstatusId?: string }[] = [];
 
     for (const row of rows) {
       const id = row[0];
@@ -131,30 +173,73 @@ serve(async (req) => {
       
       if (!id || !sheetStatus) continue;
 
-      // Convert Russian status to English if needed
-      const normalizedStatus = statusMap[sheetStatus] || sheetStatus;
-
       // Get current status from database
       const { data: current } = await supabase
         .from('feedback')
-        .select('status, sub_status')
+        .select('status, sub_status, task_status_id, task_substatus_id')
         .eq('id', id)
         .maybeSingle();
 
       if (!current) continue;
 
-      const statusChanged = current.status !== normalizedStatus;
-      const subStatusChanged = current.sub_status !== sheetSubStatus;
+      // Try to find matching dynamic status first
+      const sheetStatusLower = sheetStatus.toLowerCase();
+      const dynamicStatus = taskStatusesMap[sheetStatusLower];
+      
+      // Prepare update data
+      const updateData: Record<string, unknown> = {};
+      let hasChanges = false;
 
-      if (statusChanged || subStatusChanged) {
-        // Update status in database
-        const updateData: any = { status: normalizedStatus };
-        if (normalizedStatus === 'in_progress' && sheetSubStatus) {
-          updateData.sub_status = sheetSubStatus;
-        } else if (normalizedStatus !== 'in_progress') {
-          updateData.sub_status = null;
+      if (dynamicStatus) {
+        // Use dynamic status system
+        if (current.task_status_id !== dynamicStatus.id) {
+          updateData.task_status_id = dynamicStatus.id;
+          hasChanges = true;
         }
 
+        // Handle substatus
+        if (sheetSubStatus) {
+          const sheetSubStatusLower = sheetSubStatus.toLowerCase();
+          const dynamicSubstatus = taskSubstatusesMap[sheetSubStatusLower];
+          
+          if (dynamicSubstatus && dynamicSubstatus.statusId === dynamicStatus.id) {
+            if (current.task_substatus_id !== dynamicSubstatus.id) {
+              updateData.task_substatus_id = dynamicSubstatus.id;
+              hasChanges = true;
+            }
+          } else {
+            // Clear substatus if not found or doesn't match status
+            if (current.task_substatus_id) {
+              updateData.task_substatus_id = null;
+              hasChanges = true;
+            }
+          }
+        } else if (current.task_substatus_id) {
+          updateData.task_substatus_id = null;
+          hasChanges = true;
+        }
+      } else {
+        // Fallback to legacy status system
+        const normalizedStatus = legacyStatusMap[sheetStatus] || sheetStatus;
+        
+        if (current.status !== normalizedStatus) {
+          updateData.status = normalizedStatus;
+          hasChanges = true;
+        }
+
+        // Handle legacy sub_status
+        if (normalizedStatus === 'in_progress' && sheetSubStatus) {
+          if (current.sub_status !== sheetSubStatus) {
+            updateData.sub_status = sheetSubStatus;
+            hasChanges = true;
+          }
+        } else if (normalizedStatus !== 'in_progress' && current.sub_status) {
+          updateData.sub_status = null;
+          hasChanges = true;
+        }
+      }
+
+      if (hasChanges) {
         const { error } = await supabase
           .from('feedback')
           .update(updateData)
@@ -162,8 +247,15 @@ serve(async (req) => {
 
         if (!error) {
           updatedCount++;
-          updates.push({ id, oldStatus: current.status, newStatus: normalizedStatus, subStatus: sheetSubStatus });
-          console.log(`Updated ${id}: ${current.status} -> ${normalizedStatus}, subStatus: ${sheetSubStatus}`);
+          updates.push({ 
+            id, 
+            oldStatus: current.status, 
+            newStatus: dynamicStatus?.name || sheetStatus, 
+            subStatus: sheetSubStatus,
+            taskStatusId: updateData.task_status_id as string | undefined,
+            taskSubstatusId: updateData.task_substatus_id as string | undefined
+          });
+          console.log(`Updated ${id}:`, updateData);
         }
       }
     }

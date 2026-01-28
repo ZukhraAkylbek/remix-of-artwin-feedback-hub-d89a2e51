@@ -197,8 +197,13 @@ export const updateStatusInGoogleSheets = async (
   department: Department,
   subStatus?: string | null
 ): Promise<boolean> => {
+  // If the status is already a human-readable name (from dynamic statuses), use it directly
+  // Otherwise, convert from old status codes (new, in_progress, resolved)
+  const isLegacyStatus = ['new', 'in_progress', 'resolved'].includes(newStatus);
+  const statusDisplayName = isLegacyStatus ? getStatusName(newStatus) : newStatus;
+  
   const updateData = {
-    newStatus: getStatusName(newStatus),
+    newStatus: statusDisplayName,
     newSubStatus: subStatus || ''
   };
 
@@ -306,7 +311,8 @@ export const syncStatusesFromGoogleSheets = async (department: Department): Prom
       body: {
         spreadsheetId,
         serviceAccountEmail: deptSettings.googleServiceAccountEmail,
-        privateKey: deptSettings.googlePrivateKey
+        privateKey: deptSettings.googlePrivateKey,
+        department // Pass department to support dynamic statuses
       }
     });
 
@@ -341,6 +347,38 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
     ? RESIDENTIAL_OBJECTS.find(o => o.code === feedback.objectCode)?.nameKey || feedback.objectCode
     : '';
 
+  // Get dynamic status name if taskStatusId is set
+  let statusDisplayName = getStatusName(feedback.status);
+  let subStatusDisplayName = feedback.subStatus || '';
+  
+  if (feedback.taskStatusId) {
+    try {
+      const { data: taskStatus } = await supabase
+        .from('task_statuses')
+        .select('name')
+        .eq('id', feedback.taskStatusId)
+        .single();
+      
+      if (taskStatus) {
+        statusDisplayName = taskStatus.name;
+      }
+
+      if (feedback.taskSubstatusId) {
+        const { data: taskSubstatus } = await supabase
+          .from('task_substatuses')
+          .select('name')
+          .eq('id', feedback.taskSubstatusId)
+          .single();
+        
+        if (taskSubstatus) {
+          subStatusDisplayName = taskSubstatus.name;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching task status names:', error);
+    }
+  }
+
   const rowData = [
     feedback.id,
     feedback.createdAt,
@@ -351,8 +389,8 @@ export const syncToGoogleSheets = async (feedback: Feedback): Promise<boolean> =
     feedback.message,
     objectName,
     getDepartmentName(feedback.department),
-    getStatusName(feedback.status),
-    feedback.subStatus || '',
+    statusDisplayName,
+    subStatusDisplayName,
     feedback.attachmentUrl || '',
     feedback.bitrixTaskId || '',
     feedback.deadline || '',
