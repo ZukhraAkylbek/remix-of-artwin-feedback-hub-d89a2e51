@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto, updateFeedbackTaskStatus } from '@/lib/database';
 import { supabase } from '@/integrations/supabase/client';
 import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets, deleteFromGoogleSheets } from '@/lib/integrations';
 import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';
@@ -70,17 +70,27 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+// Types for dynamic statuses
+interface TaskStatus {
+  id: string;
+  name: string;
+  department: string;
+  isFinal: boolean;
+  position: number;
+}
+
+interface TaskSubstatus {
+  id: string;
+  statusId: string;
+  name: string;
+  position: number;
+}
+
 interface TicketDetailProps {
   ticket: Feedback;
   onBack: () => void;
   onUpdate: () => void;
 }
-
-const statusOptions: { id: FeedbackStatus; label: string; icon: React.ReactNode }[] = [
-  { id: 'new', label: 'Новая', icon: <Clock className="w-4 h-4" /> },
-  { id: 'in_progress', label: 'В работе', icon: <Loader2 className="w-4 h-4" /> },
-  { id: 'resolved', label: 'Решена', icon: <CheckCircle className="w-4 h-4" /> },
-];
 
 const typeIcons: Record<FeedbackType, React.ReactNode> = {
   remark: <AlertTriangle className="w-6 h-6" />,
@@ -115,13 +125,49 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const [finalPhotoUrl, setFinalPhotoUrl] = useState<string | null>(ticket.finalPhotoUrl || null);
   const [isUploadingFinalPhoto, setIsUploadingFinalPhoto] = useState(false);
 
+  // Dynamic task statuses from database
+  const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([]);
+  const [taskSubstatuses, setTaskSubstatuses] = useState<TaskSubstatus[]>([]);
+  const [selectedTaskStatusId, setSelectedTaskStatusId] = useState<string | null>(ticket.taskStatusId || null);
+  const [selectedTaskSubstatusId, setSelectedTaskSubstatusId] = useState<string | null>(ticket.taskSubstatusId || null);
+  const [isLoadingStatuses, setIsLoadingStatuses] = useState(true);
+
   const typeConfig = FEEDBACK_TYPE_CONFIG[ticket.type] || { color: '#888', bgColor: '#f0f0f0', label: ticket.type };
   const objectInfo = ticket.objectCode ? RESIDENTIAL_OBJECTS.find(o => o.code === ticket.objectCode) : null;
+
+  // Get current selected task status
+  const currentTaskStatus = taskStatuses.find(s => s.id === selectedTaskStatusId);
+  const isFinalStatus = currentTaskStatus?.isFinal === true;
+  
+  // Get filtered substatuses for the selected status
+  const filteredSubstatuses = taskSubstatuses.filter(sub => sub.statusId === selectedTaskStatusId);
 
   useEffect(() => {
     loadSubStatuses();
     loadEmployees();
     loadDeadlineSetting();
+    loadTaskStatuses();
+  }, [ticket.department]);
+
+  // Subscribe to realtime changes for task_statuses and task_substatuses
+  useEffect(() => {
+    const channel = supabase
+      .channel('task-statuses-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'task_statuses' },
+        () => loadTaskStatuses()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'task_substatuses' },
+        () => loadTaskStatuses()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [ticket.department]);
 
   const loadDeadlineSetting = async () => {
@@ -132,6 +178,63 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
   const loadSubStatuses = async () => {
     const statuses = await fetchSubStatuses(ticket.department);
     setSubStatuses(statuses);
+  };
+
+  const loadTaskStatuses = async () => {
+    setIsLoadingStatuses(true);
+    try {
+      // Fetch statuses for the department
+      const { data: statusesData, error: statusesError } = await supabase
+        .from('task_statuses')
+        .select('*')
+        .eq('department', ticket.department)
+        .eq('is_active', true)
+        .order('position', { ascending: true });
+
+      if (statusesError) {
+        console.error('Error loading task statuses:', statusesError);
+        return;
+      }
+
+      const mappedStatuses: TaskStatus[] = (statusesData || []).map(row => ({
+        id: row.id,
+        name: row.name,
+        department: row.department,
+        isFinal: row.is_final,
+        position: row.position
+      }));
+      setTaskStatuses(mappedStatuses);
+
+      // Fetch all substatuses for these statuses
+      if (statusesData && statusesData.length > 0) {
+        const statusIds = statusesData.map(s => s.id);
+        const { data: substatusesData, error: substatusesError } = await supabase
+          .from('task_substatuses')
+          .select('*')
+          .in('status_id', statusIds)
+          .eq('is_active', true)
+          .order('position', { ascending: true });
+
+        if (substatusesError) {
+          console.error('Error loading task substatuses:', substatusesError);
+          return;
+        }
+
+        const mappedSubstatuses: TaskSubstatus[] = (substatusesData || []).map(row => ({
+          id: row.id,
+          statusId: row.status_id,
+          name: row.name,
+          position: row.position
+        }));
+        setTaskSubstatuses(mappedSubstatuses);
+      } else {
+        setTaskSubstatuses([]);
+      }
+    } catch (error) {
+      console.error('Error in loadTaskStatuses:', error);
+    } finally {
+      setIsLoadingStatuses(false);
+    }
   };
 
   const loadEmployees = async () => {
@@ -184,6 +287,41 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
       onUpdate();
       toast.success('Статус решения обновлён');
       await updateStatusInGoogleSheets(ticket.id, 'in_progress', ticket.department as Department, selectedSubStatus.name);
+    }
+  };
+
+  // Handle dynamic task status change
+  const handleTaskStatusChange = async (statusId: string) => {
+    const success = await updateFeedbackTaskStatus(ticket.id, statusId, null);
+    if (success) {
+      const statusName = taskStatuses.find(s => s.id === statusId)?.name || '';
+      await logAdminAction('task_status_change', 'feedback', ticket.id, 
+        { taskStatusId: selectedTaskStatusId }, 
+        { taskStatusId: statusId, statusName }
+      );
+      setSelectedTaskStatusId(statusId);
+      setSelectedTaskSubstatusId(null); // Reset substatus when status changes
+      onUpdate();
+      toast.success('Статус задачи обновлён');
+    } else {
+      toast.error('Ошибка обновления статуса');
+    }
+  };
+
+  // Handle dynamic task substatus change
+  const handleTaskSubstatusChange = async (substatusId: string) => {
+    const success = await updateFeedbackTaskStatus(ticket.id, selectedTaskStatusId, substatusId);
+    if (success) {
+      const substatusName = taskSubstatuses.find(s => s.id === substatusId)?.name || '';
+      await logAdminAction('task_substatus_change', 'feedback', ticket.id, 
+        { taskSubstatusId: selectedTaskSubstatusId }, 
+        { taskSubstatusId: substatusId, substatusName }
+      );
+      setSelectedTaskSubstatusId(substatusId);
+      onUpdate();
+      toast.success('Подстатус обновлён');
+    } else {
+      toast.error('Ошибка обновления подстатуса');
     }
   };
 
@@ -451,61 +589,130 @@ export const TicketDetail = ({ ticket, onBack, onUpdate }: TicketDetailProps) =>
         </div>
 
         <div className="space-y-6">
+          {/* Dynamic Task Status from database */}
           <div className="card-elevated p-6">
-            <h3 className="font-semibold mb-4">Статус</h3>
-            <div className="space-y-2">
-              {statusOptions.map((status) => (
-                <button
-                  key={status.id}
-                  onClick={() => handleStatusChange(status.id)}
-                  className={cn(
-                    'w-full flex items-center gap-3 p-3 rounded-lg text-sm transition-colors',
-                    currentStatus === status.id ? 'bg-primary text-primary-foreground' : 'bg-muted/50 hover:bg-muted'
-                  )}
+            <h3 className="font-semibold mb-4">Статус задачи</h3>
+            {isLoadingStatuses ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : taskStatuses.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Нет настроенных статусов для этого отдела. 
+                Добавьте их в "Настройки статусов".
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <Select 
+                  value={selectedTaskStatusId || ''} 
+                  onValueChange={handleTaskStatusChange}
                 >
-                  {status.icon}
-                  {status.label}
-                </button>
-              ))}
-            </div>
+                  <SelectTrigger className="w-full bg-background">
+                    <SelectValue placeholder="Выберите статус" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border border-border z-50">
+                    {taskStatuses.map((status) => (
+                      <SelectItem key={status.id} value={status.id}>
+                        <span className="flex items-center gap-2">
+                          {status.isFinal && <CheckCircle className="w-4 h-4 text-green-500" />}
+                          {status.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            {currentStatus === 'in_progress' && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium">Статус решения</h4>
-                  <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Plus className="w-4 h-4" /></Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-background">
-                      <DialogHeader>
-                        <DialogTitle>Добавить статус решения</DialogTitle>
-                        <DialogDescription>Введите название нового статуса</DialogDescription>
-                      </DialogHeader>
-                      <Input value={newSubStatusName} onChange={(e) => setNewSubStatusName(e.target.value)} placeholder="Название статуса..." onKeyDown={(e) => e.key === 'Enter' && handleAddSubStatus()} />
-                      <DialogFooter>
-                        <Button onClick={handleAddSubStatus} disabled={isAddingSubStatus || !newSubStatusName.trim()}>
-                          {isAddingSubStatus && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                          Добавить
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                
-                {subStatuses.length > 0 && (
-                  <Select value={subStatuses.find(s => s.name === currentSubStatus)?.id || ''} onValueChange={handleSubStatusChange}>
-                    <SelectTrigger className="w-full bg-background"><SelectValue placeholder="Выберите статус решения" /></SelectTrigger>
-                    <SelectContent className="bg-background border border-border z-50">
-                      {subStatuses.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>{option.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Show substatus selector if a status is selected and has substatuses */}
+                {selectedTaskStatusId && filteredSubstatuses.length > 0 && (
+                  <div className="pt-2">
+                    <h4 className="text-sm font-medium mb-2">Подстатус</h4>
+                    <Select 
+                      value={selectedTaskSubstatusId || ''} 
+                      onValueChange={handleTaskSubstatusChange}
+                    >
+                      <SelectTrigger className="w-full bg-background">
+                        <SelectValue placeholder="Выберите подстатус" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border border-border z-50">
+                        {filteredSubstatuses.map((substatus) => (
+                          <SelectItem key={substatus.id} value={substatus.id}>
+                            {substatus.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </div>
             )}
           </div>
+
+          {/* Final Photo Upload - only show when status is final */}
+          {isFinalStatus && (
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                Финальное фото
+              </h3>
+              {finalPhotoUrl ? (
+                <div className="space-y-3">
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img 
+                      src={finalPhotoUrl} 
+                      alt="Финальное фото" 
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => window.open(finalPhotoUrl, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Открыть
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={handleRemoveFinalPhoto}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <label className="block">
+                  <div className={cn(
+                    "border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors",
+                    isUploadingFinalPhoto && "opacity-50 pointer-events-none"
+                  )}>
+                    {isUploadingFinalPhoto ? (
+                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+                    ) : (
+                      <>
+                        <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          Нажмите для загрузки фото
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Максимум 5MB
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFinalPhotoUpload}
+                    disabled={isUploadingFinalPhoto}
+                  />
+                </label>
+              )}
+            </div>
+          )}
 
           <div className="card-elevated p-6">
             <h3 className="font-semibold mb-4">Уровень</h3>
