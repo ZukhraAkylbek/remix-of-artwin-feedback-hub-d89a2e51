@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Feedback, Department, FeedbackStatus, FEEDBACK_TYPE_CONFIG, URGENCY_LEVEL_CONFIG, UrgencyLevel, DEPARTMENT_LABELS } from '@/types/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Loader2, CheckCircle, ChevronRight, User, UserX, RefreshCw, AlertTriangle, Lightbulb, Heart, ArrowRightLeft, CalendarClock } from 'lucide-react';
+import { Clock, Loader2, CheckCircle, ChevronRight, User, UserX, RefreshCw, AlertTriangle, Lightbulb, Heart, ArrowRightLeft, CalendarClock, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { syncStatusesFromGoogleSheets, syncStatusesFromBitrix } from '@/lib/integrations';
 import { fetchEmployees, Employee } from '@/lib/database';
@@ -190,16 +190,21 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant="outline" 
-                        style={{ 
-                          backgroundColor: urgencyConfig.bgColor, 
-                          color: urgencyConfig.color,
-                          borderColor: urgencyConfig.color 
-                        }}
-                      >
-                        {ticket.urgencyLevel || 1}
-                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Badge 
+                          variant="outline" 
+                          style={{ 
+                            backgroundColor: urgencyConfig.bgColor, 
+                            color: urgencyConfig.color,
+                            borderColor: urgencyConfig.color 
+                          }}
+                        >
+                          {urgencyConfig.label}
+                        </Badge>
+                        {ticket.isBlocker && (
+                          <Flag className="w-4 h-4 text-destructive fill-destructive" />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span className="text-sm">{getEmployeeName(ticket.assignedTo)}</span>

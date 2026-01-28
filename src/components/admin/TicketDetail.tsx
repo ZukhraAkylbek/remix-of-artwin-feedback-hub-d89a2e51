@@ -25,11 +25,12 @@ import {
   ArrowRightLeft,
   Upload,
   Camera,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Flag
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto, updateFeedbackTaskStatus } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto, updateFeedbackTaskStatus, updateFeedbackBlocker } from '@/lib/database';
 import { supabase } from '@/integrations/supabase/client';
 import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets, deleteFromGoogleSheets } from '@/lib/integrations';
 import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';
@@ -127,6 +128,9 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
   // Final photo state
   const [finalPhotoUrl, setFinalPhotoUrl] = useState<string | null>(ticket.finalPhotoUrl || null);
   const [isUploadingFinalPhoto, setIsUploadingFinalPhoto] = useState(false);
+  
+  // Blocker state
+  const [isBlocker, setIsBlocker] = useState<boolean>(ticket.isBlocker || false);
 
   // Dynamic task statuses from database
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([]);
@@ -486,6 +490,20 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
     }
   };
 
+  // Handle blocker toggle
+  const handleBlockerToggle = async () => {
+    const newValue = !isBlocker;
+    const success = await updateFeedbackBlocker(ticket.id, newValue);
+    if (success) {
+      await logAdminAction('blocker_toggle', 'feedback', ticket.id, { isBlocker }, { isBlocker: newValue });
+      setIsBlocker(newValue);
+      toast.success(newValue ? 'Блокер установлен' : 'Блокер снят');
+      onUpdate();
+    } else {
+      toast.error('Ошибка обновления статуса блокера');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -734,6 +752,26 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
             {urgencyLevel >= 3 && (
               <p className="text-xs text-muted-foreground mt-2">Попадает в список руководства</p>
             )}
+          </div>
+
+          {/* Blocker toggle */}
+          <div className="card-elevated p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Flag className="w-5 h-5" />
+              Блокер
+            </h3>
+            <Button
+              variant={isBlocker ? "destructive" : "outline"}
+              size="sm"
+              onClick={handleBlockerToggle}
+              className="w-full gap-2"
+            >
+              <Flag className={cn("w-4 h-4", isBlocker && "fill-current")} />
+              {isBlocker ? "Блокер активен" : "Установить блокер"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              Флаг блокера указывает на критическое препятствие для выполнения задачи
+            </p>
           </div>
 
           <div className="card-elevated p-6">

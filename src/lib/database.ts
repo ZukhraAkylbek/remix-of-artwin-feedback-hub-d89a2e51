@@ -27,6 +27,7 @@ const rowToFeedback = (row: any): Feedback => ({
   finalPhotoUrl: row.final_photo_url || null,
   taskStatusId: row.task_status_id || null,
   taskSubstatusId: row.task_substatus_id || null,
+  isBlocker: row.is_blocker || false,
 });
 
 // Fetch all feedback from database
@@ -483,6 +484,21 @@ export const updateFeedbackTaskStatus = async (
 
   if (error) {
     console.error('Error updating task status:', error);
+    return false;
+  }
+
+  return true;
+};
+
+// Update blocker status for feedback
+export const updateFeedbackBlocker = async (id: string, isBlocker: boolean): Promise<boolean> => {
+  const { error } = await supabase
+    .from('feedback')
+    .update({ is_blocker: isBlocker })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating blocker status:', error);
     return false;
   }
 
