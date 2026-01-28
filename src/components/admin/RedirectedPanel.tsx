@@ -125,7 +125,7 @@ export const RedirectedPanel = ({ feedback, department, onSelectTicket }: Redire
                           borderColor: urgencyConfig.color 
                         }}
                       >
-                        {ticket.urgencyLevel || 1}
+                        {urgencyConfig.label}
                       </Badge>
                     </TableCell>
                     <TableCell>
