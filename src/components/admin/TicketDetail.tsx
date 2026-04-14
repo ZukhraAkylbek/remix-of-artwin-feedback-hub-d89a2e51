@@ -159,28 +159,20 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
     loadEmployees();
     loadDeadlineSetting();
     loadTaskStatuses();
+    loadComments();
   }, [statusDepartment]);
 
   // Subscribe to realtime changes for task_statuses and task_substatuses
   useEffect(() => {
     const channel = supabase
-      .channel('task-statuses-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'task_statuses' },
-        () => loadTaskStatuses()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'task_substatuses' },
-        () => loadTaskStatuses()
-      )
+      .channel('task-statuses-and-comments-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_statuses' }, () => loadTaskStatuses())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_substatuses' }, () => loadTaskStatuses())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_comments', filter: `feedback_id=eq.${ticket.id}` }, () => loadComments())
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [statusDepartment]);
+    return () => { supabase.removeChannel(channel); };
+  }, [statusDepartment, ticket.id]);
 
   const loadDeadlineSetting = async () => {
     const enabled = await getAppSetting('deadline_enabled');
