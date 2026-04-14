@@ -30,7 +30,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto, updateFeedbackTaskStatus, updateFeedbackBlocker } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto, updateFeedbackTaskStatus, updateFeedbackBlocker, fetchTicketComments, addTicketComment } from '@/lib/database';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets, deleteFromGoogleSheets } from '@/lib/integrations';
 import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';

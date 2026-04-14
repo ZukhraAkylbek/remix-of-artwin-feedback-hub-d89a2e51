@@ -469,16 +469,25 @@ export const updateFeedbackFinalPhoto = async (id: string, finalPhotoUrl: string
 };
 
 // Update task status and substatus for feedback
+// Also maps dynamic status to legacy status field for list display
 export const updateFeedbackTaskStatus = async (
   id: string, 
   taskStatusId: string | null, 
-  taskSubstatusId: string | null
+  taskSubstatusId: string | null,
+  isFinal?: boolean
 ): Promise<boolean> => {
+  // Map to legacy status: if final → resolved, if has status → in_progress, else new
+  let legacyStatus: FeedbackStatus = 'new';
+  if (taskStatusId) {
+    legacyStatus = isFinal ? 'resolved' : 'in_progress';
+  }
+
   const { error } = await supabase
     .from('feedback')
     .update({ 
       task_status_id: taskStatusId,
-      task_substatus_id: taskSubstatusId
+      task_substatus_id: taskSubstatusId,
+      status: legacyStatus
     })
     .eq('id', id);
 
@@ -487,6 +496,40 @@ export const updateFeedbackTaskStatus = async (
     return false;
   }
 
+  return true;
+};
+
+// Fetch comments for a feedback item
+export const fetchTicketComments = async (feedbackId: string) => {
+  const { data, error } = await supabase
+    .from('ticket_comments')
+    .select('*')
+    .eq('feedback_id', feedbackId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching comments:', error);
+    return [];
+  }
+  return data || [];
+};
+
+// Add a comment to a feedback item
+export const addTicketComment = async (feedbackId: string, userName: string, message: string): Promise<boolean> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from('ticket_comments')
+    .insert({
+      feedback_id: feedbackId,
+      user_id: user?.id || null,
+      user_name: userName,
+      message
+    });
+
+  if (error) {
+    console.error('Error adding comment:', error);
+    return false;
+  }
   return true;
 };
 
