@@ -629,6 +629,48 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
             </div>
           )}
 
+          {/* Comments Section */}
+          <div className="card-elevated p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              💬 Комментарии ({comments.length})
+            </h3>
+            
+            {comments.length > 0 && (
+              <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
+                {comments.map((comment) => (
+                  <div key={comment.id} className="p-3 rounded-lg bg-muted/50 border border-border">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{comment.user_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(comment.created_at), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                      </span>
+                    </div>
+                    <p className="text-sm">{comment.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Написать комментарий..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
+              <Button 
+                size="sm" 
+                onClick={handleAddComment} 
+                disabled={isAddingComment || !newComment.trim()}
+                className="w-full"
+              >
+                {isAddingComment && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Отправить
+              </Button>
+            </div>
+          </div>
+
         </div>
 
         <div className="space-y-6">
