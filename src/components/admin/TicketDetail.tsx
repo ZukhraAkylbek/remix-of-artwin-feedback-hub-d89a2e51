@@ -133,6 +133,10 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
   // Blocker state
   const [isBlocker, setIsBlocker] = useState<boolean>(ticket.isBlocker || false);
 
+  // Comments state
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isAddingComment, setIsAddingComment] = useState(false);
   // Dynamic task statuses from database
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([]);
   const [taskSubstatuses, setTaskSubstatuses] = useState<TaskSubstatus[]>([]);
