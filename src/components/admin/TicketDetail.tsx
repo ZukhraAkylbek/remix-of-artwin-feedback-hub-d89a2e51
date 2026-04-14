@@ -199,6 +199,7 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
     setIsAddingComment(false);
   };
 
+  const loadSubStatuses = async () => {
     const statuses = await fetchSubStatuses(ticket.department);
     setSubStatuses(statuses);
   };
