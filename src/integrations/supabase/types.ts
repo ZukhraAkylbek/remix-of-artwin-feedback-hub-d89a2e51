@@ -377,6 +377,33 @@ export type Database = {
           },
         ]
       }
+      ticket_comments: {
+        Row: {
+          created_at: string
+          feedback_id: string
+          id: string
+          message: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_id: string
+          id?: string
+          message: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Update: {
+          created_at?: string
+          feedback_id?: string
+          id?: string
+          message?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: []
+      }
       user_departments: {
         Row: {
           created_at: string

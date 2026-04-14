@@ -30,7 +30,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { analyzeWithAI, generateAutoResponse } from '@/lib/ai';
-import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto, updateFeedbackTaskStatus, updateFeedbackBlocker } from '@/lib/database';
+import { updateFeedbackStatus, deleteFeedbackById, fetchSubStatuses, addSubStatus, SubStatusItem, fetchEmployees, updateAssignedEmployee, logAdminAction, Employee, updateFeedbackDeadline, getAppSetting, updateFeedbackUrgencyLevel, redirectFeedback, updateFeedbackFinalPhoto, updateFeedbackTaskStatus, updateFeedbackBlocker, fetchTicketComments, addTicketComment } from '@/lib/database';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { updateStatusInGoogleSheets, updateDeadlineInGoogleSheets, updateUrgencyInGoogleSheets, updateAssignedInGoogleSheets, deleteFromGoogleSheets } from '@/lib/integrations';
 import { ALL_DEPARTMENTS } from '@/lib/departmentSettings';
@@ -132,6 +133,10 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
   // Blocker state
   const [isBlocker, setIsBlocker] = useState<boolean>(ticket.isBlocker || false);
 
+  // Comments state
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isAddingComment, setIsAddingComment] = useState(false);
   // Dynamic task statuses from database
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([]);
   const [taskSubstatuses, setTaskSubstatuses] = useState<TaskSubstatus[]>([]);
@@ -154,32 +159,44 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
     loadEmployees();
     loadDeadlineSetting();
     loadTaskStatuses();
+    loadComments();
   }, [statusDepartment]);
 
   // Subscribe to realtime changes for task_statuses and task_substatuses
   useEffect(() => {
     const channel = supabase
-      .channel('task-statuses-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'task_statuses' },
-        () => loadTaskStatuses()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'task_substatuses' },
-        () => loadTaskStatuses()
-      )
+      .channel('task-statuses-and-comments-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_statuses' }, () => loadTaskStatuses())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_substatuses' }, () => loadTaskStatuses())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ticket_comments', filter: `feedback_id=eq.${ticket.id}` }, () => loadComments())
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [statusDepartment]);
+    return () => { supabase.removeChannel(channel); };
+  }, [statusDepartment, ticket.id]);
 
   const loadDeadlineSetting = async () => {
     const enabled = await getAppSetting('deadline_enabled');
     setDeadlineEnabled(enabled === true);
+  };
+
+  const loadComments = async () => {
+    const data = await fetchTicketComments(ticket.id);
+    setComments(data);
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    setIsAddingComment(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const success = await addTicketComment(ticket.id, user?.email || 'Администратор', newComment.trim());
+    if (success) {
+      setNewComment('');
+      await loadComments();
+      toast.success('Комментарий добавлен');
+    } else {
+      toast.error('Ошибка добавления комментария');
+    }
+    setIsAddingComment(false);
   };
 
   const loadSubStatuses = async () => {
@@ -299,19 +316,18 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
 
   // Handle dynamic task status change
   const handleTaskStatusChange = async (statusId: string) => {
-    const success = await updateFeedbackTaskStatus(ticket.id, statusId, null);
+    const selectedStatus = taskStatuses.find(s => s.id === statusId);
+    const success = await updateFeedbackTaskStatus(ticket.id, statusId, null, selectedStatus?.isFinal);
     if (success) {
-      const statusName = taskStatuses.find(s => s.id === statusId)?.name || '';
+      const statusName = selectedStatus?.name || '';
       await logAdminAction('task_status_change', 'feedback', ticket.id, 
         { taskStatusId: selectedTaskStatusId }, 
         { taskStatusId: statusId, statusName }
       );
       setSelectedTaskStatusId(statusId);
-      setSelectedTaskSubstatusId(null); // Reset substatus when status changes
+      setSelectedTaskSubstatusId(null);
       onUpdate();
       toast.success('Статус задачи обновлён');
-      
-      // Sync with Google Sheets
       await updateStatusInGoogleSheets(ticket.id, statusName, ticket.department as Department, null);
     } else {
       toast.error('Ошибка обновления статуса');
@@ -320,9 +336,10 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
 
   // Handle dynamic task substatus change
   const handleTaskSubstatusChange = async (substatusId: string) => {
-    const success = await updateFeedbackTaskStatus(ticket.id, selectedTaskStatusId, substatusId);
+    const currentStatusObj = taskStatuses.find(s => s.id === selectedTaskStatusId);
+    const success = await updateFeedbackTaskStatus(ticket.id, selectedTaskStatusId, substatusId, currentStatusObj?.isFinal);
     if (success) {
-      const statusName = taskStatuses.find(s => s.id === selectedTaskStatusId)?.name || '';
+      const statusName = currentStatusObj?.name || '';
       const substatusName = taskSubstatuses.find(s => s.id === substatusId)?.name || '';
       await logAdminAction('task_substatus_change', 'feedback', ticket.id, 
         { taskSubstatusId: selectedTaskSubstatusId }, 
@@ -331,8 +348,6 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
       setSelectedTaskSubstatusId(substatusId);
       onUpdate();
       toast.success('Подстатус обновлён');
-      
-      // Sync with Google Sheets
       await updateStatusInGoogleSheets(ticket.id, statusName, ticket.department as Department, substatusName);
     } else {
       toast.error('Ошибка обновления подстатуса');
@@ -613,6 +628,48 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
               </Button>
             </div>
           )}
+
+          {/* Comments Section */}
+          <div className="card-elevated p-6">
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              💬 Комментарии ({comments.length})
+            </h3>
+            
+            {comments.length > 0 && (
+              <div className="space-y-3 mb-4 max-h-80 overflow-y-auto">
+                {comments.map((comment) => (
+                  <div key={comment.id} className="p-3 rounded-lg bg-muted/50 border border-border">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{comment.user_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(comment.created_at), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                      </span>
+                    </div>
+                    <p className="text-sm">{comment.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Написать комментарий..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
+              <Button 
+                size="sm" 
+                onClick={handleAddComment} 
+                disabled={isAddingComment || !newComment.trim()}
+                className="w-full"
+              >
+                {isAddingComment && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Отправить
+              </Button>
+            </div>
+          </div>
 
         </div>
 

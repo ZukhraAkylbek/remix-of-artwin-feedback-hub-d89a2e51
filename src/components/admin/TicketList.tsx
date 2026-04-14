@@ -6,6 +6,7 @@ import { Clock, Loader2, CheckCircle, ChevronRight, User, UserX, RefreshCw, Aler
 import { cn } from '@/lib/utils';
 import { syncStatusesFromGoogleSheets, syncStatusesFromBitrix } from '@/lib/integrations';
 import { fetchEmployees, Employee } from '@/lib/database';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -37,8 +38,13 @@ const typeIcons: Record<string, React.ReactNode> = {
   gratitude: <Heart className="w-4 h-4" />,
 };
 
-// Only rukovodstvo sees all feedback from all departments
 const GLOBAL_VIEW_DEPARTMENTS: Department[] = ['rukovodstvo'];
+
+interface TaskStatusInfo {
+  id: string;
+  name: string;
+  isFinal: boolean;
+}
 
 export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: TicketListProps) => {
   const [statusFilter, setStatusFilter] = useState<FeedbackStatus | 'all'>('all');
@@ -46,6 +52,8 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [isSyncingBitrix, setIsSyncingBitrix] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [taskStatuses, setTaskStatuses] = useState<TaskStatusInfo[]>([]);
+  const [taskSubstatuses, setTaskSubstatuses] = useState<Record<string, string>>({});
   
   useEffect(() => {
     const loadEmployees = async () => {
@@ -54,6 +62,28 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
     };
     loadEmployees();
   }, []);
+
+  useEffect(() => {
+    const loadStatuses = async () => {
+      const { data: statuses } = await supabase
+        .from('task_statuses')
+        .select('id, name, is_final')
+        .eq('is_active', true);
+      if (statuses) {
+        setTaskStatuses(statuses.map(s => ({ id: s.id, name: s.name, isFinal: s.is_final })));
+      }
+      const { data: subs } = await supabase
+        .from('task_substatuses')
+        .select('id, name')
+        .eq('is_active', true);
+      if (subs) {
+        const map: Record<string, string> = {};
+        subs.forEach(s => { map[s.id] = s.name; });
+        setTaskSubstatuses(map);
+      }
+    };
+    loadStatuses();
+  }, [department]);
   
   // SSL sees all feedback, other departments see only their own
   const departmentFeedback = GLOBAL_VIEW_DEPARTMENTS.includes(department)
@@ -233,13 +263,30 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={statusConfig[ticket.status].color}>
-                        {statusConfig[ticket.status].icon}
-                        <span className="ml-1">{statusConfig[ticket.status].label}</span>
-                      </Badge>
+                      {(() => {
+                        const dynStatus = ticket.taskStatusId ? taskStatuses.find(s => s.id === ticket.taskStatusId) : null;
+                        if (dynStatus) {
+                          return (
+                            <Badge variant="outline" className={dynStatus.isFinal ? 'bg-success/10 text-success border-success/20' : 'bg-blue-600/10 text-blue-600 border-blue-600/20'}>
+                              {dynStatus.isFinal ? <CheckCircle className="w-4 h-4" /> : <Loader2 className="w-4 h-4" />}
+                              <span className="ml-1">{dynStatus.name}</span>
+                            </Badge>
+                          );
+                        }
+                        return (
+                          <Badge variant="outline" className={statusConfig[ticket.status].color}>
+                            {statusConfig[ticket.status].icon}
+                            <span className="ml-1">{statusConfig[ticket.status].label}</span>
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
-                      {ticket.subStatus ? (
+                      {ticket.taskSubstatusId && taskSubstatuses[ticket.taskSubstatusId] ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {taskSubstatuses[ticket.taskSubstatusId]}
+                        </Badge>
+                      ) : ticket.subStatus ? (
                         <Badge variant="secondary" className="text-xs">
                           {ticket.subStatus}
                         </Badge>
