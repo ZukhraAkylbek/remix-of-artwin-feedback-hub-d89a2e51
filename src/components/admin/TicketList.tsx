@@ -263,13 +263,30 @@ export const TicketList = ({ feedback, department, onSelectTicket, onRefresh }: 
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={statusConfig[ticket.status].color}>
-                        {statusConfig[ticket.status].icon}
-                        <span className="ml-1">{statusConfig[ticket.status].label}</span>
-                      </Badge>
+                      {(() => {
+                        const dynStatus = ticket.taskStatusId ? taskStatuses.find(s => s.id === ticket.taskStatusId) : null;
+                        if (dynStatus) {
+                          return (
+                            <Badge variant="outline" className={dynStatus.isFinal ? 'bg-success/10 text-success border-success/20' : 'bg-blue-600/10 text-blue-600 border-blue-600/20'}>
+                              {dynStatus.isFinal ? <CheckCircle className="w-4 h-4" /> : <Loader2 className="w-4 h-4" />}
+                              <span className="ml-1">{dynStatus.name}</span>
+                            </Badge>
+                          );
+                        }
+                        return (
+                          <Badge variant="outline" className={statusConfig[ticket.status].color}>
+                            {statusConfig[ticket.status].icon}
+                            <span className="ml-1">{statusConfig[ticket.status].label}</span>
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
-                      {ticket.subStatus ? (
+                      {ticket.taskSubstatusId && taskSubstatuses[ticket.taskSubstatusId] ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {taskSubstatuses[ticket.taskSubstatusId]}
+                        </Badge>
+                      ) : ticket.subStatus ? (
                         <Badge variant="secondary" className="text-xs">
                           {ticket.subStatus}
                         </Badge>
