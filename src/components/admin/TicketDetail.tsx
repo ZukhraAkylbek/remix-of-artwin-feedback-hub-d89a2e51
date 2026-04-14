@@ -179,7 +179,26 @@ export const TicketDetail = ({ ticket, onBack, onUpdate, currentDepartment }: Ti
     setDeadlineEnabled(enabled === true);
   };
 
-  const loadSubStatuses = async () => {
+  const loadComments = async () => {
+    const data = await fetchTicketComments(ticket.id);
+    setComments(data);
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    setIsAddingComment(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const success = await addTicketComment(ticket.id, user?.email || 'Администратор', newComment.trim());
+    if (success) {
+      setNewComment('');
+      await loadComments();
+      toast.success('Комментарий добавлен');
+    } else {
+      toast.error('Ошибка добавления комментария');
+    }
+    setIsAddingComment(false);
+  };
+
     const statuses = await fetchSubStatuses(ticket.department);
     setSubStatuses(statuses);
   };
