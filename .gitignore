@@ -27,3 +27,4 @@ dist-ssr
 selfhost/functions.env
 selfhost/data.sql
 selfhost/functions.log
+selfhost/server.env
