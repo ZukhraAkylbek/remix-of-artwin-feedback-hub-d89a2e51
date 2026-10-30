@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.env.local
+selfhost/functions.env
+selfhost/data.sql
+selfhost/functions.log
