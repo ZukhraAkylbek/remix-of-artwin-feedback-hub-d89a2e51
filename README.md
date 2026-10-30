@@ -20,7 +20,7 @@ npx supabase db reset && ./selfhost/setup-local.sh
 
 ### Настройки
 - `.env.local` — адрес базы и публичный ключ для сайта (создаётся скриптом).
-- `selfhost/functions.env` — секреты функций (AI-ключ). Шаблон: `selfhost/functions.env.example`.
+- `selfhost/functions.env` — секреты функций. Шаблон: `selfhost/functions.env.example`. Сюда вписывается ключ для голосового ввода (`OPENAI_API_KEY` на своём сервере): файл подхватывается автоматически при запуске `setup-local.sh`, пока ключ пуст — голосовой ввод просто выключен.
 - Ссылки Google Таблиц и Bitrix24 задаются в админке → Настройки отдела.
 
 Полная инструкция для сервера: `self-hosting-guide.md` (в Files).
