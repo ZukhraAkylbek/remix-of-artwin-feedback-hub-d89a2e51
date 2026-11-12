@@ -1,0 +1,1 @@
+ANALYZE public.feedback; ANALYZE public.employees; ANALYZE public.ticket_comments; ANALYZE public.task_statuses; ANALYZE public.task_substatuses; ANALYZE public.department_settings; ANALYZE public.user_roles; ANALYZE public.user_departments; ANALYZE public.sub_statuses; ANALYZE public.app_settings; ANALYZE public.admin_action_logs; ANALYZE public.residential_objects;
